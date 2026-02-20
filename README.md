@@ -88,6 +88,46 @@ run.py            # application entry point
 - Judge analytics dashboard  
 
 ---
+## ⚙️ Running Locally
+
+### Clone the repository
+```bash
+git clone https://github.com/shreyababoota/judgex.git
+cd judgex
+```
+
+### Create a virtual environment
+```bash
+python -m venv .venv
+```
+Activate the environment:
+### Windows
+```bash
+.venv\Scripts\activate
+```source .venv/bin/activate
+```
+Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+### Mac/Linux
+```bash
+source .venv/bin/activate
+```
+
+### Make sure docker is running
+
+JudgeX uses Docker to safely execute user-submitted code.
+
+Make sure Docker Desktop is installed and running before starting the application.
+
+### Run the application
+
+```bash
+python run.py
+```
+The server should now be running locally.
 
 ## 🎯 Learning Outcomes
 
