@@ -33,7 +33,6 @@ class Submission(db.Model):
     id= db.Column(db.Integer, primary_key=True)
     user_id= db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     problem_id = db.Column(db.Integer, db.ForeignKey('problem.id'), nullable=False)
-    code= db.Column(db.Text, nullable=False)
     language= db.Column(db.String(50), nullable=False)
     verdict= db.Column(db.String(50), nullable=True)
     time_taken= db.Column(db.Float, nullable=True)
@@ -41,3 +40,4 @@ class Submission(db.Model):
     submitted_at= db.Column(db.DateTime, default=db.func.current_timestamp())
     status= db.Column(db.String(50), nullable=True)
     problem = db.relationship("Problem", backref="submissions")
+    file_path= db.Column(db.String(255), nullable=True)
