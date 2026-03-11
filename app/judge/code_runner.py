@@ -3,27 +3,27 @@ import os
 import uuid
 
 def run_code_docker(file_path: str, command: str, input_data: str, time_limit: int, memory_limit: int):
-    file_name = os.path.basename(file_path)
     dir_path = os.path.dirname(os.path.abspath(file_path))
 
     memory_limit_str = f"{memory_limit}m"
     container_name = f"judge_{uuid.uuid4().hex}"
 
     command = f"""
-/usr/bin/time -f '%e'{command}
+/usr/bin/time -f '%e' {command}
 echo __MEMORY__
 if [ -f /sys/fs/cgroup/memory.peak ]; then
-    cat /sys/fs/cgroup/memory.peak
+cat /sys/fs/cgroup/memory.peak
 elif [ -f /sys/fs/cgroup/memory.max_usage_in_bytes ]; then
-    cat /sys/fs/cgroup/memory.max_usage_in_bytes
+cat /sys/fs/cgroup/memory.max_usage_in_bytes
 elif [ -f /sys/fs/cgroup/memory.current ]; then
-    cat /sys/fs/cgroup/memory.current
+cat /sys/fs/cgroup/memory.current
 fi
 """
 
     cmd = [
         "docker", "run",
         "--rm",
+        "--user", f"{os.getuid()}:{os.getgid()}",
         "-i",
         "--name", container_name,
         "--memory", memory_limit_str,
@@ -59,8 +59,21 @@ fi
 
         if "__MEMORY__" in stdout_data:
             parts = stdout_data.splitlines()
-            marker_index = parts.index("__MEMORY__")
 
+            try:
+                marker_index = parts.index("__MEMORY__")
+
+                if marker_index + 1 < len(parts):
+                    try:
+                        memory_taken = int(parts[marker_index + 1])
+                    except ValueError:
+                        memory_taken = None
+
+                stdout_data = "\n".join(parts[:marker_index])
+
+            except ValueError:
+                # marker not found safely
+                pass
             if marker_index + 1 < len(parts):
                 try:
                     memory_taken = int(parts[marker_index + 1])
@@ -126,10 +139,11 @@ def compile_cpp_docker(file_path: str, memory_limit: int):
     memory_limit_str=f"{memory_limit}m"
     container_name=f"judge_compile_{uuid.uuid4().hex}"
     output_binary=file_name.replace(".cpp", ".out")
-    command=f"g++ {file_name} -o {output_binary}"
+    command=f"g++ {file_name} -O2 -std=c++17 -o {output_binary}"
 
     cmd = [
         "docker", "run",
+        "--user", f"{os.getuid()}:{os.getgid()}",
         "--rm",
         "--name", container_name,
         "--memory", memory_limit_str,
@@ -154,7 +168,8 @@ def compile_cpp_docker(file_path: str, memory_limit: int):
         return {
             "success": True,
             "stderr":result.stderr,
-            "returncode": 0
+            "returncode": 0,
+            "binary_name": output_binary
         }
     else:
         return {
@@ -166,8 +181,7 @@ def compile_cpp_docker(file_path: str, memory_limit: int):
 
 
 
-# Judge against testcases
-def judge_against_testcases(submission, test_cases):
+def judge_against_testcases(command, submission, test_cases):
     if not test_cases:
         return {
             "verdict": "No Test Cases",
@@ -179,13 +193,16 @@ def judge_against_testcases(submission, test_cases):
     max_memory = 0
 
     for test_case in test_cases:
-        result = run_python_code_docker(
+        result = run_code_docker(
             submission.file_path,
+            command,
             test_case.input_data,
             submission.problem.time_limit,
             submission.problem.memory_limit
         )
-
+        print("STDERR:", result["stderr"])
+        print("STDOUT:", result["stdout"])
+        print("EXPECTED:", test_case.expected_output)
         if result["time_taken"] is not None:
             max_time = max(max_time, result["time_taken"])
 

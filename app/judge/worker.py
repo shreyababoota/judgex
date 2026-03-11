@@ -3,7 +3,8 @@ from app import create_app
 from app.utils.state_machine import update_status
 from app.extentions import db
 from app.models import Submission, Problem, TestCase
-from app.judge.code_runner import run_python_code, judge_against_testcases
+from app.judge.code_runner import judge_against_testcases, compile_cpp_docker
+import os
 
 def process_submission(submission):
     try:
@@ -15,7 +16,27 @@ def process_submission(submission):
             .all()
         )
 
-        result = judge_against_testcases(submission, test_cases)
+        file_path=submission.file_path
+        file_name=os.path.basename(file_path)
+
+        if submission.language=="python":
+            command=f"python3 {file_name}"
+
+        elif submission.language=="cpp":
+            compile_result=compile_cpp_docker(file_path,submission.problem.memory_limit)
+            print("COMPILER STDERR:", compile_result["stderr"])
+            if not compile_result["success"]:
+                submission.verdict="COMPILE_ERROR"
+                update_status(submission,"DONE")
+                db.session.commit()
+                return
+                
+            binary_name = compile_result["binary_name"]
+            command = f"./{binary_name}"            
+        print(f"Processing submission {submission.id} with command: {command}")
+        
+        result=judge_against_testcases(command,submission,test_cases)
+
         submission.verdict = result["verdict"]
         submission.time_taken = result["time_taken"]
         submission.memory_taken = result["memory_taken"]
@@ -43,7 +64,7 @@ def run_worker():
             candidate=(
                 Submission.query
                 .filter_by(status="IN_QUEUE")
-                .order_by(Submission.created_at.asc())
+                .order_by(Submission.submitted_at.asc())
                 .first()
             )
             if candidate:

@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="card">
+
+<h2>All Submissions</h2>
+
+<table style="width:100%">
+<thead>
+<tr>
+<th>ID</th>
+<th>User</th>
+<th>Problem</th>
+<th>Language</th>
+<th>Verdict</th>
+<th>Action</th>
+</tr>
+</thead>
+
+<tbody id="submissions-body"></tbody>
+
+</table>
+
+</div>
+
+<script>
+
+async function loadSubmissions(){
+
+    const token = localStorage.getItem("token");
+
+    const res = await fetch("/admin/submissions",{
+        headers:{
+            "Authorization":"Bearer " + token
+        }
+    });
+
+    const data = await res.json();
+
+    const body = document.getElementById("submissions-body");
+
+    body.innerHTML = "";
+
+    data.submissions.forEach(sub => {
+
+        const row = `
+        <tr>
+
+        <td>${sub.id}</td>
+        <td>${sub.user_id}</td>
+        <td>${sub.problem_id}</td>
+        <td>${sub.language}</td>
+        <td>${sub.verdict || sub.status}</td>
+
+        <td>
+        <button onclick="rejudge(${sub.id})">
+        Rejudge
+        </button>
+        </td>
+
+        </tr>
+        `;
+
+        body.innerHTML += row;
+
+    });
+
+}
+
+async function rejudge(id){
+
+    const token = localStorage.getItem("token");
+
+    await fetch(`/admin/rejudge/${id}`,{
+        method:"POST",
+        headers:{
+            "Authorization":"Bearer " + token
+        }
+    });
+
+    alert("Rejudge queued");
+
+    loadSubmissions();
+
+}
+
+loadSubmissions();
+setInterval(loadSubmissions,2000);
+
+
+</script>
+
+{% endblock %}

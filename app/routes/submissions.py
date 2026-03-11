@@ -1,10 +1,15 @@
 import math
+import uuid
 from flask import Blueprint,request, jsonify
+import flask
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from app.judge.file_storage import save_submission_file
 from ..extentions import db
 from ..models import Submission, Problem
+import subprocess, uuid
+from flask import request
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 submissions_bp = Blueprint("submissions", __name__)
 
@@ -91,16 +96,20 @@ def create_submission():
 @submissions_bp.route("/submissions/<int:submission_id>", methods=["GET"])
 @jwt_required()
 def get_submission(submission_id):
+    
     user_id=int(get_jwt_identity())
-    submission=Submission.query.get(submission_id)
+    submission=Submission.query.get_or_404(submission_id)
     if not submission:
         return {"error": "Submission not found"}, 404
     if submission.user_id!=user_id:
         return {"error": "Forbidden"}, 403
+    with open(submission.file_path, "r") as f:
+        code = f.read()
+        
     return {
         "id": submission.id,
         "problem_id": submission.problem_id,
-        "code": submission.code,
+        "code": code,
         "language": submission.language,
         "status": submission.status,
         "verdict": submission.verdict,
@@ -161,10 +170,13 @@ def list_submissions():
             "language": s.language,
             "status": s.status,
             "verdict": s.verdict,
-            "submitted_at": s.submitted_at.isoformat()
+            "time_taken": s.time_taken,
+            "memory_taken": s.memory_taken,
+            "submitted_at": s.submitted_at.isoformat(),
+            "problem_title":s.problem.title
         }
         for s in submissions
-    ]
+    ]   
     total_pages=math.ceil(total/limit)
     return{
         "submissions": result,
@@ -173,3 +185,70 @@ def list_submissions():
         "total":total,
         "total_pages": total_pages
     },200   
+
+
+import os
+import uuid
+from flask import request
+from flask_jwt_extended import jwt_required
+from app.judge.code_runner import run_code_docker, compile_cpp_docker
+
+
+@submissions_bp.route("/run", methods=["POST"])
+@jwt_required()
+def run_code():
+
+    data = request.json
+
+    code = data.get("code")
+    language = data.get("language")
+    input_data = data.get("input", "")
+
+    if not code or not language:
+        return {"error": "Missing code or language"}, 400
+
+    run_dir = f"/tmp/run_{uuid.uuid4().hex}"
+    os.makedirs(run_dir, exist_ok=True)
+
+    if language == "python":
+
+        file_path = os.path.join(run_dir, "main.py")
+
+        with open(file_path, "w") as f:
+            f.write(code)
+
+        command = "python3 main.py"
+
+    elif language == "cpp":
+
+        file_path = os.path.join(run_dir, "main.cpp")
+
+        with open(file_path, "w") as f:
+            f.write(code)
+
+        compile_result = compile_cpp_docker(file_path, memory_limit=256)
+
+        if not compile_result["success"]:
+            return {
+                "stdout": "",
+                "stderr": compile_result["stderr"]
+            }
+
+        command = f"./{compile_result['binary_name']}"
+
+    else:
+        return {"error": "Unsupported language"}, 400
+
+
+    result = run_code_docker(
+        file_path=file_path,
+        command=command,
+        input_data=input_data,
+        time_limit=2000,
+        memory_limit=256
+    )
+
+    return {
+        "stdout": result["stdout"],
+        "stderr": result["stderr"]
+    }

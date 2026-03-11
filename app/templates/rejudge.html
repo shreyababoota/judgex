@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="card">
+
+<h2>Rejudge Submission</h2>
+
+<input id="submission-id-input" placeholder="Enter Submission ID">
+
+<button onclick="rejudge()">Rejudge</button>
+
+<p id="result"></p>
+
+</div>
+
+<script>
+
+async function rejudge(){
+
+    const id = document.getElementById("submission-id-input").value;
+
+    const token = localStorage.getItem("token");
+
+    const res = await fetch(`/admin/rejudge/${id}`,{
+        method:"POST",
+        headers:{
+            "Authorization":"Bearer " + token
+        }
+    });
+
+    const data = await res.json();
+
+    document.getElementById("result").innerText =
+        JSON.stringify(data);
+
+}
+
+</script>
+
+{% endblock %}

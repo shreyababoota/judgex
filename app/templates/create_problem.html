@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="card">
+
+<h2>Create Problem</h2>
+
+<input id="title" placeholder="Title"><br><br>
+
+<textarea id="statement" placeholder="Problem Statement"></textarea><br><br>
+
+<textarea id="constraints" placeholder="Constraints"></textarea><br><br>
+
+<textarea id="input_format" placeholder="Input Format"></textarea><br><br>
+
+<textarea id="output_format" placeholder="Output Format"></textarea><br><br>
+
+<input id="time_limit" placeholder="Time Limit (ms)"><br><br>
+
+<input id="memory_limit" placeholder="Memory Limit (MB)"><br><br>
+
+<select id="difficulty">
+<option value="easy">Easy</option>
+<option value="medium">Medium</option>
+<option value="hard">Hard</option>
+</select>
+
+<br><br>
+
+<button onclick="createProblem()">Create Problem</button>
+
+<p id="result"></p>
+
+</div>
+
+<script>
+
+async function createProblem(){
+
+    const token = localStorage.getItem("token");
+
+    const data = {
+        title: document.getElementById("title").value,
+        statement: document.getElementById("statement").value,
+        constraints: document.getElementById("constraints").value,
+        input_format: document.getElementById("input_format").value,
+        output_format: document.getElementById("output_format").value,
+        time_limit: parseInt(document.getElementById("time_limit").value),
+        memory_limit: parseInt(document.getElementById("memory_limit").value),
+        difficulty: document.getElementById("difficulty").value
+    };
+
+    const res = await fetch("/problems",{
+
+        method:"POST",
+
+        headers:{
+            "Content-Type":"application/json",
+            "Authorization":"Bearer " + token
+        },
+
+        body: JSON.stringify(data)
+
+    });
+
+    const result = await res.json();
+
+    document.getElementById("result").innerText = JSON.stringify(result);
+
+}
+
+</script>
+
+{% endblock %}

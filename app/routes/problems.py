@@ -1,6 +1,6 @@
 from flask import Blueprint, request
 from ..extentions import db
-from ..models import Problem, User
+from ..models import Problem, Submission
 from ..models import TestCase
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.utils.decorators import admin_required
@@ -13,7 +13,7 @@ problems_bp = Blueprint("problems", __name__)
 def create_problem():
     data=request.get_json()
     user_id=int(get_jwt_identity())
-
+    
     if not data:
         return {"error": "No data provided"}, 400
     required_fields = ["title", "statement", "time_limit", "memory_limit","constraints","input_format","output_format","difficulty"]
@@ -50,44 +50,92 @@ def create_problem():
     return {"message": "Problem created successfully", "problem_id": problem.id}, 201
 
 @problems_bp.route("/problems", methods=["GET"])
+@jwt_required(optional=True)
 def list_problems():
+
     try:
-        page=int(request.args.get("page", 1))
-        limit=int(request.args.get("limit", 10))
+        page = int(request.args.get("page", 1))
+        limit = int(request.args.get("limit", 10))
     except ValueError:
         return {"error": "Page and limit must be integers"}, 400
-    if page<=0:
+
+    if page <= 0:
         return {"error": "Page must be greater than 0"}, 400
-    if limit<=0:
+
+    if limit <= 0:
         return {"error": "Limit must be greater than 0"}, 400
-    if limit>50:
-        limit=50
-    problems=(
+
+    if limit > 50:
+        limit = 50
+
+    user_id = get_jwt_identity()
+
+    total = Problem.query.count()
+
+    problems = (
         Problem.query
-        .order_by(Problem.created_at.desc())
-        .offset((page-1)*limit)
+        .order_by(Problem.id.asc())
+        .offset((page - 1) * limit)
         .limit(limit)
         .all()
     )
-    result=[
-        {
+
+    result = []
+
+    for p in problems:
+
+        status = "NOT_ATTEMPTED"
+
+        # Only check submissions if user is logged in
+        if user_id:
+
+            submissions = Submission.query.filter_by(
+                user_id=int(user_id),
+                problem_id=p.id
+            ).all()
+
+            if submissions:
+                status = "ATTEMPTED"
+
+                for s in submissions:
+                    if s.verdict == "ACCEPTED":
+                        status = "SOLVED"
+                        break
+
+        result.append({
             "id": p.id,
             "title": p.title,
             "difficulty": p.difficulty,
-        }
-        for p in problems
-    ]
-    return{
+            "status": status
+        })
+
+    total_pages = (total + limit - 1) // limit
+
+    return {
         "problems": result,
         "page": page,
         "limit": limit,
-    },200
+        "total_pages": total_pages
+    }, 200
 
 @problems_bp.route('/problems/<int:problem_id>', methods=['GET'])
 def get_problem(problem_id):
-    problem=Problem.query.get(problem_id)
+    problem=db.session.get(Problem, problem_id)
     if not problem:
         return {"error": "Problem not found"}, 404
+    
+    testcases=TestCase.query.filter_by(
+        problem_id=problem_id, 
+        is_hidden=False
+        ).order_by(TestCase.order_index).all()
+    
+    samples=[
+        {
+            "input": t.input_data,
+            "output": t.expected_output
+        }
+        for t in testcases
+    ]
     return{
         "id": problem.id,
         "title":problem.title,
@@ -99,6 +147,7 @@ def get_problem(problem_id):
         "time_limit":problem.time_limit,
         "memory_limit":problem.memory_limit,
         "created_at":problem.created_at.isoformat(),
+        "samples": samples
     }
 
 @problems_bp.route("/problems/<int:problem_id>/testcases", methods=["POST"])

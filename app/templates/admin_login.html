@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="card">
+
+<h2>Admin Login</h2>
+
+<input id="email" placeholder="Admin Email" style="width:100%;padding:8px"><br><br>
+
+<input id="password" type="password" placeholder="Password" style="width:100%;padding:8px"><br><br>
+
+<button onclick="adminLogin()">Login</button>
+
+<p id="error" style="color:red;"></p>
+
+</div>
+
+<script>
+
+async function adminLogin(){
+
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    const res = await fetch("/login", {
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+            email:email,
+            password:password
+        })
+    });
+
+    const data = await res.json();
+
+    if(!data.access_token){
+        document.getElementById("error").innerText = "Login failed";
+        return;
+    }
+
+    if(data.role !== "ADMIN"){
+        document.getElementById("error").innerText = "Not an admin account";
+        return;
+    }
+
+    localStorage.setItem("token", data.access_token);
+    localStorage.setItem("role", data.role);
+
+    window.location.href="/admin-dashboard";
+}
+
+</script>
+
+{% endblock %}

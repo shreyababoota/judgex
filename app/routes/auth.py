@@ -20,7 +20,8 @@ def login():
     access_token=create_access_token(identity=str(user.id))
     return{
         "message": "Login successful",
-        "access_token": access_token
+        "access_token": access_token,
+        "role": user.role
     },200
 
 @auth_bp.route('/signup', methods=['POST'])
@@ -30,9 +31,17 @@ def signup():
         return {"error": "No data provided"}, 400
     if "email" not in data or "password" not in data:
         return {"error":"Both email and password are required"},400
-    new_user=User(
-        email=data["email"],
-        password_hash=generate_password_hash(data["password"])
+    
+    user_count = User.query.count()
+    email=data["email"].strip().lower()
+    hashed_password = generate_password_hash(data["password"].strip())
+
+    role = "ADMIN" if user_count == 0 else "USER"
+
+    new_user = User(
+        email=email,
+        password_hash=hashed_password,
+        role=role
     )
     try:
         db.session.add(new_user)
@@ -51,5 +60,6 @@ def profile():
         return {"error": "User not found"}, 401
     return {
         "id": user.id,
-        "email": user.email
+        "email": user.email,
+        "role": user.role,
     },200

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="card">
+<h2>Profile</h2>
+<div id="admin-message" style="display:none; margin-bottom:10px; font-weight:600; color:#b91c1c;">
+    <p>Admin Account</p>
+    <p>You have administrative privileges.</p>
+</div>
+<p id="user-email"></p>
+<p id="user-id"></p>
+
+</div>
+<script>
+document.addEventListener("DOMContentLoaded", async function(){
+
+    const token = localStorage.getItem("token");
+    const role = localStorage.getItem("role");
+
+    console.log("Role:", role);
+
+    if(!token){
+        window.location.href="/login-page";
+        return;
+    }
+
+    // show admin message
+    if(role === "ADMIN"){
+        document.getElementById("admin-message").style.display = "block";
+    }
+
+    // load profile
+    const res = await fetch("/profile",{
+        headers:{
+            "Authorization":"Bearer " + token
+        }
+    });
+
+    const data = await res.json();
+
+    document.getElementById("user-email").innerText = "Email: " + data.email;
+    document.getElementById("user-id").innerText = "User ID: " + data.id;
+
+});
+</script>
+{% endblock %}

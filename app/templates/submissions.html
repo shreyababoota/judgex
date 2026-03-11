@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="card">
+<h2>Submissions</h2>
+
+<table style="width:100%">
+<thead>
+<tr>
+<th>ID</th>
+<th>Problem</th>
+<th>Language</th>
+<th>Verdict</th>
+<th>Time</th>
+<th>Memory</th>
+<th>Submitted At</th>
+</tr>
+</thead>
+
+<tbody id="submissions-body"></tbody>
+</table>
+
+<div id="pagination" style="margin-top:20px;"></div>
+
+</div>
+
+<script>
+
+let currentPage = 1;
+function formatTime(ts){
+
+    if(!ts) return "-";
+
+    const d = new Date(ts);
+
+    return d.toLocaleString([], {
+        day: "2-digit",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+
+}
+
+async function loadSubmissions(page = 1) {
+
+    currentPage = page;
+
+    const token = localStorage.getItem("token");
+
+    const res = await fetch(`/submissions?page=${page}`, {
+        headers: {
+            "Authorization": "Bearer " + token
+        }
+    });
+
+    const data = await res.json();
+
+    const body = document.getElementById("submissions-body");
+    body.innerHTML = "";
+
+    data.submissions.forEach(sub => {
+
+        const verdict = sub.verdict || sub.status;
+
+        let color = "";
+
+        if(verdict === "ACCEPTED") color = "green";
+        else if(verdict === "WRONG_ANSWER") color = "red";
+        else if(verdict === "TLE") color = "orange";
+        else if(verdict === "RUNTIME_ERROR") color = "purple";
+        else if(verdict === "IN_QUEUE") color = "#2563eb";
+        else if(verdict === "RUNNING") color = "#2563eb";
+        else color = "#555";
+
+        let cls = "";
+        if(verdict === "IN_QUEUE" || verdict === "RUNNING"){
+            cls = "judging";
+        }
+
+        const memoryMB = sub.memory_taken
+            ? (sub.memory_taken / 1024 / 1024).toFixed(2) + " MB"
+            : "-";
+
+const row = `
+<tr>
+    <td>${sub.id}</td>
+    <td>
+<a href="/problem-page/${sub.problem_id}">
+    ${sub.problem_title}
+</a>
+    </td>
+    <td>${sub.language}</td>
+    <td class="${cls}" style="color:${color}; font-weight:600">
+        ${verdict}
+    </td>
+    <td>${sub.time_taken ? sub.time_taken + " ms" : "-"}</td>
+    <td>${memoryMB}</td>
+<td>${formatTime(sub.submitted_at)}</td>
+</tr>
+`;
+        body.innerHTML += row;
+    });
+
+    renderPagination(data.page, data.total_pages);
+}
+
+function renderPagination(page, totalPages) {
+
+    const container = document.getElementById("pagination");
+
+    let html = "";
+
+    if(page > 1)
+        html += `<button onclick="loadSubmissions(${page-1})">Prev</button>`;
+
+    html += `<span style="margin:0 10px">Page ${page}</span>`;
+
+    if(page < totalPages)
+        html += `<button onclick="loadSubmissions(${page+1})">Next</button>`;
+
+    container.innerHTML = html;
+}
+
+window.onload = () => {
+
+    loadSubmissions(1);
+
+    // refresh every 2 seconds
+    setInterval(() => {
+        loadSubmissions(currentPage);
+    }, 2000);
+
+};
+</script>
+
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="card">
+
+<h2>Login</h2>
+
+<input id="email" placeholder="Email" style="width:100%;padding:8px"><br><br>
+
+<input id="password" type="password" placeholder="Password" style="width:100%;padding:8px"><br><br>
+
+<button onclick="login()">Login</button>
+
+<p id="msg" style="color:red; margin-top:10px;"></p>
+</div>
+
+<script>
+
+async function login(){
+
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    const res = await fetch("/login",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+            email:email,
+            password:password
+        })
+    });
+
+    const data = await res.json();
+
+    if(data.access_token){
+
+        // 🚨 block admin login here
+        if(data.role === "ADMIN"){
+            document.getElementById("msg").innerText =
+                "You are an admin. Please login from the Admin Login page.";
+            return;
+        }
+
+        localStorage.setItem("token",data.access_token);
+        localStorage.setItem("role", data.role);
+
+        window.location="/problems-page";
+
+    }else{
+
+        document.getElementById("msg").innerText="Wrong Username or Password";
+
+    }
+
+}
+</script>
+
+{% endblock %}

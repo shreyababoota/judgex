@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="card">
+
+<h2>Problems</h2>
+
+<table>
+
+<thead>
+<tr>
+<th id="status-header">Status</th>
+<th>ID</th>
+<th>Title</th>
+<th>Difficulty</th>
+</tr>
+</thead>
+
+<tbody id="problems-body"></tbody>
+
+</table>
+<table class="problems-table" style="width:100%"></table>
+
+<div id="pagination" style="margin-top:20px;"></div>
+
+</div>
+
+<script>
+
+let currentPage = 1;
+
+async function loadProblems(page = 1){
+
+    const token = localStorage.getItem("token");
+
+    const statusHeader = document.getElementById("status-header");
+
+    if(!token && statusHeader){
+        statusHeader.style.display = "none";
+    }
+
+    let options = {};
+
+    if(token){
+        options.headers = {
+            "Authorization": "Bearer " + token
+        };
+    }
+
+const res = await fetch("/problems?page=" + page, options);
+const data = await res.json();
+const body = document.getElementById("problems-body");
+body.innerHTML = "";
+
+data.problems.forEach(p=>{
+
+    let icon = "";
+
+    if(p.status === "SOLVED") icon = "✅";
+    else if(p.status === "ATTEMPTED") icon = "⚠️";
+
+    let row = "";
+
+    if(token){
+        row = `
+        <tr>
+            <td>${icon}</td>
+            <td>${p.id}</td>
+            <td><a href="/problem-page/${p.id}">${p.title}</a></td>
+            <td class="${p.difficulty}">${p.difficulty}</td>
+        </tr>
+        `;
+    } else {
+        row = `
+        <tr>
+            <td>${p.id}</td>
+            <td><a href="/problem-page/${p.id}">${p.title}</a></td>
+            <td class="${p.difficulty}">${p.difficulty}</td>
+        </tr>
+        `;
+    }
+
+    body.innerHTML += row;
+});
+    const container = document.getElementById("pagination");
+
+    let html = "";
+
+    if(page > 1)
+        html += `<button onclick="loadProblems(${page-1})">Prev</button>`;
+
+    html += `<span style="margin:0 10px">Page ${page}</span>`;
+
+    html += `<button onclick="loadProblems(${page+1})">Next</button>`;
+
+    container.innerHTML = html;
+}
+
+loadProblems();
+
+</script>
+
+{% endblock %}

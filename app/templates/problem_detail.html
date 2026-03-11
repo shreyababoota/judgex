@@ -1,0 +1,311 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="problem-layout">
+
+    <!-- LEFT PANEL -->
+    <div class="problem-panel">
+
+        <div class="card">
+            <h2 id="title"></h2>
+            <p id="statement"></p>
+        </div>
+
+        <div class="card">
+            <h3>Constraints</h3>
+            <p id="constraints"></p>
+
+            <h3>Input Format</h3>
+            <p id="input_format"></p>
+
+            <h3>Output Format</h3>
+            <p id="output_format"></p>
+        </div>
+
+        <div class="card">
+        <h3>Sample Testcases</h3>
+
+        <div id="samples"></div>
+
+        </div>
+
+    </div>
+
+
+    <!-- RIGHT PANEL -->
+    <div class="editor-panel">
+
+        <div class="card">
+
+            <h3>Submit Solution</h3>
+
+            <select id="language">
+                <option value="python">Python</option>
+                <option value="cpp">C++</option>
+            </select>
+
+            <br><br>
+
+            <div id="editor"></div>
+            <label>Custom Input</label>
+
+        <textarea id="custom-input" placeholder="Enter input here..." rows="5"></textarea>
+
+            <br>
+
+<button class="run-btn" onclick="runCode()">Run</button>
+<button class="submit-btn" onclick="submitCode()">Submit</button>            
+<pre id="run-output" class="run-output" style="display:none;"></pre>
+           <div id="result">
+
+        <p id="submission-id"></p>
+        <p id="submission-status"></p>
+        <p id="submission-verdict"></p>
+
+</div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script src="https://unpkg.com/monaco-editor@0.34.1/min/vs/loader.js"></script>
+
+<script>
+
+let editor;
+
+require.config({
+    paths: { vs: 'https://unpkg.com/monaco-editor@0.34.1/min/vs' }
+});
+
+require(['vs/editor/editor.main'], function () {
+
+    editor = monaco.editor.create(document.getElementById('editor'), {
+        value: "# Write your code here\n",
+        language: "python",
+        theme: "vs-dark",
+        automaticLayout: true
+    });
+
+    loadProblem(); // run after editor loads
+});
+
+
+document.getElementById("language").addEventListener("change", function(){
+
+    const lang = this.value;
+
+    if(lang === "python"){
+
+        editor.setValue(`# Write your code here
+
+print("hello")
+`);
+
+        monaco.editor.setModelLanguage(editor.getModel(), "python");
+    }
+
+    if(lang === "cpp"){
+
+        editor.setValue(`#include <iostream>
+using namespace std;
+
+int main(){
+    cout << "hello\\n";
+    return 0;
+}
+`);
+
+        monaco.editor.setModelLanguage(editor.getModel(), "cpp");
+    }
+
+});
+
+
+const problemId = {{ problem_id }};
+
+
+async function loadProblem(){
+
+    const res = await fetch(`/problems/${problemId}`);
+    const data = await res.json();
+
+    const sampleBox = document.getElementById("samples");
+
+    if(data.samples && data.samples.length > 0){
+
+        let html = "";
+
+        data.samples.forEach((s,i)=>{
+
+            html += `
+            <div style="margin-bottom:20px">
+
+            <b>Sample ${i+1}</b>
+
+            <pre>Input
+${s.input}</pre>
+
+            <pre>Output
+${s.output}</pre>
+
+            </div>
+            `;
+        });
+
+        sampleBox.innerHTML = html;
+    }
+
+    document.getElementById("title").innerText = data.title;
+    document.getElementById("statement").innerText = data.statement;
+    document.getElementById("constraints").innerText = data.constraints;
+    document.getElementById("input_format").innerText = data.input_format;
+    document.getElementById("output_format").innerText = data.output_format;
+}
+
+
+async function runCode(){
+
+    const token = localStorage.getItem("token");
+
+    if(!token){
+        alert("Please login before running code.");
+        window.location = "/login-page";
+        return;
+    }
+
+    const runBtn = document.querySelector(".run-btn");
+    runBtn.disabled = true;
+
+    const code = editor.getValue();
+    const language = document.getElementById("language").value;
+    const input = document.getElementById("custom-input").value;
+
+    const box = document.getElementById("run-output");
+
+    box.style.display = "block";
+    box.innerText = "Running...";
+
+    const res = await fetch("/run",{
+
+        method:"POST",
+
+        headers:{
+            "Content-Type":"application/json",
+            "Authorization":"Bearer " + token
+        },
+
+        body:JSON.stringify({
+            problem_id: problemId,
+            language: language,
+            code: code,
+            input: input
+        })
+
+    });
+
+    const data = await res.json();
+
+    box.innerText =
+    (data.stdout ? "OUTPUT:\n" + data.stdout : "") +
+    (data.stderr ? "\nERROR:\n" + data.stderr : "");
+
+    runBtn.disabled = false;
+}
+
+
+async function submitCode(){
+
+    const token = localStorage.getItem("token");
+
+    if(!token){
+        if(confirm("You must login to submit code. Go to login page?")){
+            window.location="/login-page";
+        }
+        return;
+    }
+
+    const submitBtn = document.querySelector(".submit-btn");
+    submitBtn.disabled = true;
+    submitBtn.innerText = "Submitting...";
+
+    const code = editor.getValue();
+    const language = document.getElementById("language").value;
+
+    const res = await fetch("/submissions",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json",
+            "Authorization":"Bearer " + token
+        },
+        body:JSON.stringify({
+            problem_id: problemId,
+            language: language,
+            code: code
+        })
+    });
+
+    const data = await res.json();
+
+    if(!data.submission_id){
+        document.getElementById("submission-status").innerText =
+            "Submission failed: " + JSON.stringify(data);
+        return;
+    }
+
+    document.getElementById("submission-id").innerText =
+        "Submission ID: " + data.submission_id;
+
+    document.getElementById("submission-status").innerText =
+        "Status: IN_QUEUE";
+
+    document.getElementById("submission-verdict").innerText = "";
+
+    checkStatus(data.submission_id);
+
+    submitBtn.disabled = false;
+    submitBtn.innerText = "Submit";
+}
+
+
+async function checkStatus(submissionId){
+
+    const token = localStorage.getItem("token");
+
+    const res = await fetch(`/submissions/${submissionId}/status`,{
+        headers:{
+            "Authorization":"Bearer " + token
+        }
+    });
+
+    const data = await res.json();
+
+    const idBox = document.getElementById("submission-id");
+    const statusBox = document.getElementById("submission-status");
+    const verdictBox = document.getElementById("submission-verdict");
+
+    idBox.innerText = "Submission ID: " + submissionId;
+    statusBox.innerText = "Status: " + data.status;
+
+    if(data.verdict){
+
+        verdictBox.innerText = "Verdict: " + data.verdict;
+
+        if(data.verdict === "ACCEPTED")
+            verdictBox.style.color = "green";
+        else
+            verdictBox.style.color = "red";
+    }
+
+    if(!data.verdict && data.status !== "ERROR"){
+        setTimeout(()=>checkStatus(submissionId),1000);
+    }
+
+}
+
+</script>
+{% endblock %}

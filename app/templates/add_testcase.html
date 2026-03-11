@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="card">
+
+<h2>Add Testcase</h2>
+
+<input id="problem_id" placeholder="Problem ID"><br><br>
+
+<textarea id="input_data" placeholder="Input Data"></textarea><br><br>
+
+<textarea id="expected_output" placeholder="Expected Output"></textarea><br><br>
+
+<input id="order_index" placeholder="Order Index"><br><br>
+
+<label>
+<input type="checkbox" id="is_hidden" checked>
+Hidden Testcase
+</label>
+
+<br><br>
+
+<button onclick="addTestcase()">Add Testcase</button>
+
+<p id="result"></p>
+
+</div>
+
+<script>
+
+async function addTestcase(){
+
+    const token = localStorage.getItem("token");
+
+    const problemId = document.getElementById("problem_id").value;
+
+    const data = {
+        input_data: document.getElementById("input_data").value,
+        expected_output: document.getElementById("expected_output").value,
+        order_index: parseInt(document.getElementById("order_index").value),
+        is_hidden: document.getElementById("is_hidden").checked
+    };
+
+    const res = await fetch(`/problems/${problemId}/testcases`, {
+
+        method: "POST",
+
+        headers:{
+            "Content-Type":"application/json",
+            "Authorization":"Bearer " + token
+        },
+
+        body: JSON.stringify(data)
+
+    });
+
+    const result = await res.json();
+
+    document.getElementById("result").innerText = JSON.stringify(result);
+
+}
+
+</script>
+
+{% endblock %}
