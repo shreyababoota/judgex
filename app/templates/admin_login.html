@@ -37,7 +37,7 @@ async function adminLogin(){
     const data = await res.json();
 
     if(!data.access_token){
-        document.getElementById("error").innerText = "Login failed";
+        document.getElementById("error").innerText = "Incorrect Username or Password";
         return;
     }
 

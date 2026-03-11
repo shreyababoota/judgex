@@ -50,6 +50,7 @@ def create_problem():
     return {"message": "Problem created successfully", "problem_id": problem.id}, 201
 
 @problems_bp.route("/problems", methods=["GET"])
+@jwt_required(optional=True)
 def list_problems():
 
     try:

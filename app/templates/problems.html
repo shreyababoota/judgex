@@ -14,7 +14,7 @@
 <th>ID</th>
 <th>Title</th>
 <th>Difficulty</th>
-<th id=""admin-actions>Actions</th>
+<th id="admin-actions">Actions</th>
 </tr>
 </thead>
 
@@ -30,85 +30,96 @@
 
 let currentPage = 1;
 
+const role = localStorage.getItem("role")
+
+// hide admin column if not admin
+if(role !== "ADMIN"){
+    const adminHeader = document.getElementById("admin-actions")
+    if(adminHeader) adminHeader.style.display = "none"
+}
+
 async function loadProblems(page = 1){
 
-    const token = localStorage.getItem("token");
+    currentPage = page
 
-    const statusHeader = document.getElementById("status-header");
-    const body = document.getElementById("problems-body");
+    const token = localStorage.getItem("token")
+    const statusHeader = document.getElementById("status-header")
+    const body = document.getElementById("problems-body")
 
     if(!token){
-        statusHeader.style.display = "none";
+        statusHeader.style.display = "none"
     }
 
-    let options = {};
+    let options = {}
 
     if(token){
         options.headers = {
             "Authorization": "Bearer " + token
-        };
+        }
     }
 
-    const res = await fetch("/problems?page=" + page, options);
-    const data = await res.json();
+    const res = await fetch("/problems?page=" + page, options)
+    const data = await res.json()
 
-    body.innerHTML = "";
+    body.innerHTML = ""
 
     data.problems.forEach(p => {
 
-        let icon = "";
+        let icon = ""
 
-        if(p.status === "SOLVED") icon = "✅";
-        else if(p.status === "ATTEMPTED") icon = "⚠️";
+        if(p.status === "SOLVED") icon = "✅"
+        else if(p.status === "ATTEMPTED") icon = "⚠️"
 
-        let row = "";
+        let actions = ""
+
+        if(role === "ADMIN"){
+            actions = `
+                <button onclick="deleteProblem(${p.id})">Delete</button>
+                </button>
+            `
+        }
+
+        let row = ""
 
         if(token){
+            row = `
+            <tr>
+                <td>${icon}</td>
+                <td>${p.id}</td>
+                <td><a href="/problem-page/${p.id}">${p.title}</a></td>
+                <td class="${p.difficulty}">${p.difficulty}</td>
+                <td>${actions}</td>
+            </tr>
+            `
+        }
+        else{
+            row = `
+            <tr>
+                <td>${p.id}</td>
+                <td><a href="/problem-page/${p.id}">${p.title}</a></td>
+                <td class="${p.difficulty}">${p.difficulty}</td>
+            </tr>
+            `
+        }
 
-    const role = localStorage.getItem("role")
+        body.innerHTML += row
+    })
 
-    let actions = ""
+    const container = document.getElementById("pagination")
 
-    if(role === "ADMIN"){
-        actions = `
-        <button onclick="deleteProblem(${p.id})">Delete</button>
-        <button onclick="window.location='/admin/edit-testcase/${p.id}'">
-            Edit Testcases
-        </button>
-        `
-    }
-
-    row = `
-    <tr>
-        <td>${icon}</td>
-        <td>${p.id}</td>
-        <td><a href="/problem-page/${p.id}">${p.title}</a></td>
-        <td class="${p.difficulty}">${p.difficulty}</td>
-        <td>${actions}</td>
-    </tr>
-    `;
-}
-
-        body.innerHTML += row;
-    });
-
-    const container = document.getElementById("pagination");
-
-    let html = "";
+    let html = ""
 
     if(page > 1){
-        html += `<button onclick="loadProblems(${page-1})">Prev</button>`;
+        html += `<button onclick="loadProblems(${page-1})">Prev</button>`
     }
 
-    html += `<span style="margin:0 10px">Page ${page}</span>`;
+    html += `<span style="margin:0 10px">Page ${page}</span>`
 
-    html += `<button onclick="loadProblems(${page+1})">Next</button>`;
+    html += `<button onclick="loadProblems(${page+1})">Next</button>`
 
-    container.innerHTML = html;
-
+    container.innerHTML = html
 }
 
-loadProblems();
 async function deleteProblem(problemId){
 
     if(!confirm("Delete this problem?")) return
@@ -127,13 +138,9 @@ async function deleteProblem(problemId){
     alert(data.message || data.error)
 
     loadProblems(currentPage)
-    const role = localStorage.getItem("role")
+}
 
-if(role !== "ADMIN"){
-    const adminHeader = document.getElementById("admin-actions")
-    if(adminHeader) adminHeader.style.display="none"
-}
-}
+loadProblems()
 
 </script>
 
