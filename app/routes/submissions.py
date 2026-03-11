@@ -191,7 +191,7 @@ import os
 import uuid
 from flask import request
 from flask_jwt_extended import jwt_required
-from app.judge.code_runner import run_code_docker, compile_cpp_docker
+from app.judge.code_runner import run_code, compile_cpp
 
 
 @submissions_bp.route("/run", methods=["POST"])
@@ -226,7 +226,7 @@ def run_code():
         with open(file_path, "w") as f:
             f.write(code)
 
-        compile_result = compile_cpp_docker(file_path, memory_limit=256)
+        compile_result = compile_cpp(file_path, memory_limit=256)
 
         if not compile_result["success"]:
             return {
@@ -240,7 +240,7 @@ def run_code():
         return {"error": "Unsupported language"}, 400
 
 
-    result = run_code_docker(
+    result = run_code(
         file_path=file_path,
         command=command,
         input_data=input_data,

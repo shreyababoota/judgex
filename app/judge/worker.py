@@ -3,7 +3,7 @@ from app import create_app
 from app.utils.state_machine import update_status
 from app.extentions import db
 from app.models import Submission, Problem, TestCase
-from app.judge.code_runner import judge_against_testcases, compile_cpp_docker
+from app.judge.code_runner import judge_against_testcases,compile_cpp
 import os
 
 def process_submission(submission):
@@ -23,7 +23,7 @@ def process_submission(submission):
             command=f"python3 {file_name}"
 
         elif submission.language=="cpp":
-            compile_result=compile_cpp_docker(file_path,submission.problem.memory_limit)
+            compile_result=compile_cpp(file_path,submission.problem.memory_limit)
             print("COMPILER STDERR:", compile_result["stderr"])
             if not compile_result["success"]:
                 submission.verdict="COMPILE_ERROR"
