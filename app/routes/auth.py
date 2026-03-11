@@ -43,6 +43,9 @@ def login():
 @auth_bp.route('/signup', methods=['GET','POST'])
 def signup():
 
+    if request.method == "GET":
+        return render_template("signup.html")
+
     data = request.get_json(silent=True) or request.form
 
     if not data:
@@ -73,7 +76,6 @@ def signup():
         return {"error": "Email already exists"}, 409
 
     return {"message": "User created successfully"}, 201
-
 
 # PROFILE
 @auth_bp.route("/profile", methods=["GET"])
