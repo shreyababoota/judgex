@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, redirect
 
 frontend_bp = Blueprint("frontend", __name__)
 
@@ -54,3 +54,7 @@ def users_page():
 @frontend_bp.route("/admin/login")
 def admin_login_page():
     return render_template("admin_login.html")
+
+@frontend_bp.route("/")
+def home():
+    return redirect("/problems-page")

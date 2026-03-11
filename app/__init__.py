@@ -15,7 +15,9 @@ def create_app():
 
     if database_url and database_url.startswith("postgres://"):
         database_url = database_url.replace("postgres://", "postgresql://")
+    from datetime import timedelta
 
+    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(days=1)
     app.config["SQLALCHEMY_DATABASE_URI"] = database_url
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
