@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>Online Judge</title>
+    <title>JUDGEX</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
@@ -10,7 +10,7 @@
 
 <div class="container-full">
 
-<h1 class="site-title">Online Judge</h1>
+<h1 class="site-title">JUDGEX</h1>
 
 <header class="navbar">
 
@@ -25,11 +25,13 @@
     </div>
 
 </header>
+
 {% block content %}{% endblock %}
 
 </div>
 
 <script>
+
 document.addEventListener("DOMContentLoaded", function(){
 
     const token = localStorage.getItem("token");
@@ -45,26 +47,30 @@ document.addEventListener("DOMContentLoaded", function(){
 
     left.innerHTML = `<a href="/problems-page">Problems</a>`;
 
-    // Not logged in
+    /* ---------- NOT LOGGED IN ---------- */
+
     if(!token){
         links.innerHTML = `
-            <a href="/signup-page">Signup</a>
-            <a href="/login-page">Login</a>
-            <a href="/admin-login">Admin Login</a>
+            <a href="/signup">Signup</a>
+            <a href="/login">Login</a>
+            <a href="/admin/login">Admin Login</a>
         `;
     }
-    // Admin navbar
+
+    /* ---------- ADMIN NAVBAR ---------- */
+
     else if(role === "ADMIN"){
         links.innerHTML = `
             <a href="/admin/submissions-page" class="desktop-only">All Submissions</a>
             <a href="/admin/create-problem" class="desktop-only">Create Problem</a>
             <a href="/admin/add-testcase" class="desktop-only">Add Testcase</a>
             <a href="/admin/users-page" class="desktop-only">Manage Users</a>
-            
+
             <a href="/profile-page" class="desktop-only">Profile</a>
-            
+
             <div class="dropdown mobile-only" id="more-dropdown-container">
                 <button id="more-btn" class="run-btn">Menu ▾</button>
+
                 <div id="more-dropdown" class="dropdown-content">
                     <a href="/admin/submissions-page">All Submissions</a>
                     <a href="/admin/create-problem">Create Problem</a>
@@ -77,15 +83,18 @@ document.addEventListener("DOMContentLoaded", function(){
             <a href="#" onclick="logout()">Logout</a>
         `;
     }
-    // Normal user navbar
-    else {
+
+    /* ---------- USER NAVBAR ---------- */
+
+    else{
         links.innerHTML = `
             <a href="/submissions-page">Submissions</a>
-            
+
             <a href="/profile-page" class="desktop-only">Profile</a>
-            
+
             <div class="dropdown mobile-only" id="more-dropdown-container">
                 <button id="more-btn" class="run-btn">Menu ▾</button>
+
                 <div id="more-dropdown" class="dropdown-content">
                     <a href="/profile-page">Profile</a>
                 </div>
@@ -96,24 +105,25 @@ document.addEventListener("DOMContentLoaded", function(){
     }
 
     /* ======================
-       Dropdown Toggle Logic
+       Dropdown Logic
     ====================== */
-    // Attach this AFTER the HTML is injected into the DOM
+
     const moreBtn = document.getElementById("more-btn");
     const dropdownContainer = document.getElementById("more-dropdown-container");
 
     if (moreBtn && dropdownContainer) {
+
         moreBtn.onclick = (e) => {
-            e.stopPropagation(); // Prevents click from bubbling up
+            e.stopPropagation();
             dropdownContainer.classList.toggle("show");
         };
 
-        // Optional: Close dropdown when clicking outside
         document.addEventListener('click', (e) => {
             if (!dropdownContainer.contains(e.target)) {
                 dropdownContainer.classList.remove('show');
             }
         });
+
     }
 
     /* ======================
@@ -126,25 +136,37 @@ document.addEventListener("DOMContentLoaded", function(){
     }
 
     toggle.onclick = () => {
+
         document.body.classList.toggle("dark");
+
         if(document.body.classList.contains("dark")){
             toggle.textContent = "☀️";
             localStorage.setItem("theme","dark");
-        } else {
+        }
+        else{
             toggle.textContent = "🌙";
             localStorage.setItem("theme","light");
         }
-    }
+
+    };
+
 });
+
 
 /* ======================
    Logout
 ====================== */
+
 function logout(){
+
     localStorage.removeItem("token");
     localStorage.removeItem("role");
-    window.location = "/login-page";
+
+    window.location = "/login";
+
 }
+
 </script>
+
 </body>
 </html>
