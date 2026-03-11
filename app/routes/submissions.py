@@ -196,7 +196,7 @@ from app.judge.code_runner import run_code, compile_cpp
 
 @submissions_bp.route("/run", methods=["POST"])
 @jwt_required()
-def run_code():
+def run_code_route():
 
     data = request.json
 
@@ -217,7 +217,7 @@ def run_code():
         with open(file_path, "w") as f:
             f.write(code)
 
-        command = "python3 main.py"
+        command = ["python3", "main.py"]
 
     elif language == "cpp":
 
@@ -226,7 +226,7 @@ def run_code():
         with open(file_path, "w") as f:
             f.write(code)
 
-        compile_result = compile_cpp(file_path, memory_limit=256)
+        compile_result = compile_cpp(file_path)
 
         if not compile_result["success"]:
             return {
@@ -234,18 +234,20 @@ def run_code():
                 "stderr": compile_result["stderr"]
             }
 
-        command = f"./{compile_result['binary_name']}"
+        binary_name = compile_result["binary_name"]
+
+        command = ["./" + binary_name]
 
     else:
         return {"error": "Unsupported language"}, 400
 
 
     result = run_code(
-        file_path=file_path,
         command=command,
         input_data=input_data,
         time_limit=2000,
-        memory_limit=256
+        memory_limit=256,
+        work_dir=run_dir
     )
 
     return {
