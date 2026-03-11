@@ -1,6 +1,6 @@
 from app import create_app
 import threading
-from app.worker import run_worker
+from app.judge.worker import run_worker
 
 app = create_app()
 
