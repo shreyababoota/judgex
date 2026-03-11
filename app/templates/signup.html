@@ -33,12 +33,15 @@ password:password
 
 const data=await res.json()
 
-alert("Signup successful. You can now login.")
+if(data.error){
+    alert(data.error)
+    return
+}
 
-window.location="/login-page"
+alert("Signup successful. You can now login.")
+window.location="/login"
 
 }
 
 </script>
-
 {% endblock %}
