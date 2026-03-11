@@ -14,13 +14,13 @@
 <th>ID</th>
 <th>Title</th>
 <th>Difficulty</th>
+<th id=""admin-actions>Actions</th>
 </tr>
 </thead>
 
 <tbody id="problems-body"></tbody>
 
 </table>
-<table class="problems-table" style="width:100%"></table>
 
 <div id="pagination" style="margin-top:20px;"></div>
 
@@ -35,8 +35,9 @@ async function loadProblems(page = 1){
     const token = localStorage.getItem("token");
 
     const statusHeader = document.getElementById("status-header");
+    const body = document.getElementById("problems-body");
 
-    if(!token && statusHeader){
+    if(!token){
         statusHeader.style.display = "none";
     }
 
@@ -48,56 +49,91 @@ async function loadProblems(page = 1){
         };
     }
 
-const res = await fetch("/problems?page=" + page, options);
-const data = await res.json();
-const body = document.getElementById("problems-body");
-body.innerHTML = "";
+    const res = await fetch("/problems?page=" + page, options);
+    const data = await res.json();
 
-data.problems.forEach(p=>{
+    body.innerHTML = "";
 
-    let icon = "";
+    data.problems.forEach(p => {
 
-    if(p.status === "SOLVED") icon = "✅";
-    else if(p.status === "ATTEMPTED") icon = "⚠️";
+        let icon = "";
 
-    let row = "";
+        if(p.status === "SOLVED") icon = "✅";
+        else if(p.status === "ATTEMPTED") icon = "⚠️";
 
-    if(token){
-        row = `
-        <tr>
-            <td>${icon}</td>
-            <td>${p.id}</td>
-            <td><a href="/problem-page/${p.id}">${p.title}</a></td>
-            <td class="${p.difficulty}">${p.difficulty}</td>
-        </tr>
-        `;
-    } else {
-        row = `
-        <tr>
-            <td>${p.id}</td>
-            <td><a href="/problem-page/${p.id}">${p.title}</a></td>
-            <td class="${p.difficulty}">${p.difficulty}</td>
-        </tr>
-        `;
+        let row = "";
+
+        if(token){
+
+    const role = localStorage.getItem("role")
+
+    let actions = ""
+
+    if(role === "ADMIN"){
+        actions = `
+        <button onclick="deleteProblem(${p.id})">Delete</button>
+        <button onclick="window.location='/admin/edit-testcase/${p.id}'">
+            Edit Testcases
+        </button>
+        `
     }
 
-    body.innerHTML += row;
-});
+    row = `
+    <tr>
+        <td>${icon}</td>
+        <td>${p.id}</td>
+        <td><a href="/problem-page/${p.id}">${p.title}</a></td>
+        <td class="${p.difficulty}">${p.difficulty}</td>
+        <td>${actions}</td>
+    </tr>
+    `;
+}
+
+        body.innerHTML += row;
+    });
+
     const container = document.getElementById("pagination");
 
     let html = "";
 
-    if(page > 1)
+    if(page > 1){
         html += `<button onclick="loadProblems(${page-1})">Prev</button>`;
+    }
 
     html += `<span style="margin:0 10px">Page ${page}</span>`;
 
     html += `<button onclick="loadProblems(${page+1})">Next</button>`;
 
     container.innerHTML = html;
+
 }
 
 loadProblems();
+async function deleteProblem(problemId){
+
+    if(!confirm("Delete this problem?")) return
+
+    const token = localStorage.getItem("token")
+
+    const res = await fetch(`/admin/problem/${problemId}`,{
+        method:"DELETE",
+        headers:{
+            "Authorization":"Bearer " + token
+        }
+    })
+
+    const data = await res.json()
+
+    alert(data.message || data.error)
+
+    loadProblems(currentPage)
+    const role = localStorage.getItem("role")
+
+if(role !== "ADMIN"){
+    const adminHeader = document.getElementById("admin-actions")
+    if(adminHeader) adminHeader.style.display="none"
+}
+}
 
 </script>
 

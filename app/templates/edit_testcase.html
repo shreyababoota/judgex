@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="card">
+
+<h2>Edit Testcases</h2>
+
+<input id="input" placeholder="Input" style="width:100%;padding:8px"><br><br>
+
+<input id="output" placeholder="Expected Output" style="width:100%;padding:8px"><br><br>
+
+<button onclick="addTestcase()">Add Testcase</button>
+
+</div>
+
+<script>
+
+// block non-admin users
+const role = localStorage.getItem("role")
+
+if(role !== "ADMIN"){
+    alert("Admin only page")
+    window.location = "/problems-page"
+}
+
+async function addTestcase(){
+
+    const token = localStorage.getItem("token")
+
+    const input = document.getElementById("input").value
+    const output = document.getElementById("output").value
+
+    if(!input || !output){
+        alert("Input and output are required")
+        return
+    }
+
+    const problemId = "{{ problem_id }}"
+
+    const res = await fetch(`/problems/${problemId}/testcases`,{
+        method:"POST",
+        headers:{
+            "Authorization":"Bearer " + token,
+            "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+            input_data: input,
+            expected_output: output
+        })
+    })
+
+    const data = await res.json()
+
+    alert(data.message || data.error)
+
+    // clear fields after success
+    document.getElementById("input").value = ""
+    document.getElementById("output").value = ""
+
+}
+
+</script>
+
+{% endblock %}

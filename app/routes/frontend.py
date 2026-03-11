@@ -58,3 +58,6 @@ def admin_login_page():
 @frontend_bp.route("/")
 def home():
     return redirect("/problems-page")
+@frontend_bp.route("/admin/edit-testcase/<int:problem_id>")
+def edit_testcase_page(problem_id):
+    return render_template("edit_testcase.html", problem_id=problem_id)
