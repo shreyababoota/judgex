@@ -18,8 +18,7 @@ def login():
         return render_template("login.html")
 
     # POST request → process login
-    data = request.get_json()
-
+    data = request.get_json(silent=True) or request.form
     if not data:
         return {"error": "No data provided"}, 400
 
