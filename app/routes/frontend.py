@@ -19,10 +19,6 @@ def problem_page(problem_id):
 def login_page():
     return render_template("login.html")
 
-@frontend_bp.route("/admin-login")
-def admin_login_page():
-    return render_template("admin_login.html")
-
 @frontend_bp.route("/profile-page")
 def profile_page():
     return render_template("profile.html")
@@ -54,3 +50,7 @@ def signup_page():
 @frontend_bp.route("/admin/users-page")
 def users_page():
     return render_template("admin_dashboard.html")
+
+@frontend_bp.route("/admin/login")
+def admin_login_page():
+    return render_template("admin_login.html")

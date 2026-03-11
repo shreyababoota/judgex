@@ -43,7 +43,7 @@ def login():
 @auth_bp.route('/signup', methods=['GET','POST'])
 def signup():
 
-    data = request.get_json()
+    data = request.get_json(silent=True) or request.form
 
     if not data:
         return {"error": "No data provided"}, 400
