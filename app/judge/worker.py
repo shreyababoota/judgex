@@ -20,10 +20,10 @@ def process_submission(submission):
         file_name=os.path.basename(file_path)
 
         if submission.language=="python":
-            command=f"python3 {file_name}"
+            command = ["python3", file_name]
 
         elif submission.language=="cpp":
-            compile_result=compile_cpp(file_path,submission.problem.memory_limit)
+            compile_result=compile_cpp(file_path)
             print("COMPILER STDERR:", compile_result["stderr"])
             if not compile_result["success"]:
                 submission.verdict="COMPILE_ERROR"
@@ -32,7 +32,7 @@ def process_submission(submission):
                 return
                 
             binary_name = compile_result["binary_name"]
-            command = f"./{binary_name}"            
+            command = ["./" + binary_name]       
         print(f"Processing submission {submission.id} with command: {command}")
         
         result=judge_against_testcases(command,submission,test_cases)

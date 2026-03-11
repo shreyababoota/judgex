@@ -1,15 +1,14 @@
 from app import create_app
 import threading
-from app.worker import worker_loop   # make sure this function exists
+from app.worker import run_worker
 
 app = create_app()
 
 
 def start_worker():
-    thread = threading.Thread(target=worker_loop)
+    thread = threading.Thread(target=run_worker)
     thread.daemon = True
     thread.start()
 
 
-# start worker when app starts
 start_worker()
