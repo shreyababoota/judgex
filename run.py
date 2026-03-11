@@ -13,7 +13,6 @@ def start_worker():
     thread.daemon = True
     thread.start()
 
-start_worker()
-
 if __name__ == "__main__":
+    start_worker()
     app.run(debug=True)
