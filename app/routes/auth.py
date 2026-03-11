@@ -41,7 +41,7 @@ def login():
 
 
 # SIGNUP
-@auth_bp.route('/signup', methods=['POST'])
+@auth_bp.route('/signup', methods=['GET','POST'])
 def signup():
 
     data = request.get_json()
