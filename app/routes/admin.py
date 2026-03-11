@@ -106,3 +106,15 @@ def delete_problem(problem_id):
     db.session.commit()
 
     return {"message": "Problem deleted successfully"}
+from app.extentions import db
+from app.models import Problem, Submission
+from flask import Blueprint
+
+admin_bp = Blueprint("admin", __name__)
+
+@admin_bp.route("/admin/clear-all-problems")
+def clear_all_problems():
+    Submission.query.delete()
+    Problem.query.delete()
+    db.session.commit()
+    return "All problems cleared"
