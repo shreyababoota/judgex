@@ -14,7 +14,6 @@
 <th>ID</th>
 <th>Title</th>
 <th>Difficulty</th>
-<th id="admin-actions">Actions</th>
 </tr>
 </thead>
 
@@ -28,15 +27,9 @@
 
 <script>
 
-let currentPage = 1;
+let currentPage = 1
 
 const role = localStorage.getItem("role")
-
-// hide admin column if not admin
-if(role !== "ADMIN"){
-    const adminHeader = document.getElementById("admin-actions")
-    if(adminHeader) adminHeader.style.display = "none"
-}
 
 async function loadProblems(page = 1){
 
@@ -70,15 +63,6 @@ async function loadProblems(page = 1){
         if(p.status === "SOLVED") icon = "✅"
         else if(p.status === "ATTEMPTED") icon = "⚠️"
 
-        let actions = ""
-
-        if(role === "ADMIN"){
-            actions = `
-                <button onclick="deleteProblem(${p.id})">Delete</button>
-                </button>
-            `
-        }
-
         let row = ""
 
         if(token){
@@ -88,7 +72,6 @@ async function loadProblems(page = 1){
                 <td>${p.id}</td>
                 <td><a href="/problem-page/${p.id}">${p.title}</a></td>
                 <td class="${p.difficulty}">${p.difficulty}</td>
-                <td>${actions}</td>
             </tr>
             `
         }
@@ -118,26 +101,6 @@ async function loadProblems(page = 1){
     html += `<button onclick="loadProblems(${page+1})">Next</button>`
 
     container.innerHTML = html
-}
-
-async function deleteProblem(problemId){
-
-    if(!confirm("Delete this problem?")) return
-
-    const token = localStorage.getItem("token")
-
-    const res = await fetch(`/admin/problem/${problemId}`,{
-        method:"DELETE",
-        headers:{
-            "Authorization":"Bearer " + token
-        }
-    })
-
-    const data = await res.json()
-
-    alert(data.message || data.error)
-
-    loadProblems(currentPage)
 }
 
 loadProblems()

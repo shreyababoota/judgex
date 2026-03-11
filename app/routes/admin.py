@@ -1,7 +1,7 @@
 from flask import Blueprint
 from flask_jwt_extended import jwt_required
 from app.utils.state_machine import update_status
-from app.models import User, Submission, Problem
+from app.models import User, Submission
 from app.extentions import db
 from app.utils.decorators import admin_required
 
@@ -91,30 +91,3 @@ def list_users():
     ]
 
     return {"users": result}, 200
-
-@admin_bp.route("/admin/problem/<int:problem_id>", methods=["DELETE"])
-@jwt_required()
-@admin_required
-def delete_problem(problem_id):
-
-    problem = db.session.get(Problem, problem_id)
-
-    if not problem:
-        return {"error": "Problem not found"}, 404
-
-    db.session.delete(problem)
-    db.session.commit()
-
-    return {"message": "Problem deleted successfully"}
-from app.extentions import db
-from app.models import Problem, Submission
-from flask import Blueprint
-
-admin_bp = Blueprint("admin", __name__)
-
-@admin_bp.route("/admin/clear-all-problems")
-def clear_all_problems():
-    Submission.query.delete()
-    Problem.query.delete()
-    db.session.commit()
-    return "All problems cleared"
