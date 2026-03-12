@@ -110,6 +110,9 @@ def get_submission(submission_id):
     if submission.user_id != user_id:
         return {"error": "Forbidden"}, 403
 
+    if not os.path.exists(submission.file_path):
+        return {"code": "Code file not found (server restart removed stored files)."}
+
     with open(submission.file_path, "r") as f:
         code = f.read()
 

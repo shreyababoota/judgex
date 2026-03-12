@@ -30,8 +30,7 @@ def run_code(command, input_data, time_limit, memory_limit, work_dir):
 
         usage_after = resource.getrusage(resource.RUSAGE_CHILDREN)
 
-        memory_used = usage_after.ru_maxrss - usage_before.ru_maxrss
-
+        memory_used = usage_after.ru_maxrss
         stdout_data = result.stdout
         stderr_data = result.stderr
 

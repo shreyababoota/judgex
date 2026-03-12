@@ -10,6 +10,9 @@ def create_app():
 
     app = Flask(__name__, template_folder="templates")
 
+    # ensure submissions folder exists
+    os.makedirs("submissions_storage", exist_ok=True)
+
     app.config["JWT_SECRET_KEY"] = "dev-secret-key"
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(days=1)
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -28,7 +31,6 @@ def create_app():
     migrate = Migrate(app, db)
     jwt.init_app(app)
 
-    # 🔴 THIS IS IMPORTANT
     from . import models
 
     register_routes(app)

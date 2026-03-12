@@ -80,10 +80,9 @@ async function loadSubmissions(page = 1) {
             cls = "judging";
         }
 
-const memoryMB = sub.memory_taken
-? Math.round(sub.memory_taken / 1024) + " KB"
-: "-";
-const row = `
+const memoryKB = sub.memory_taken
+? sub.memory_taken + " KB"
+: "-";const row = `
 <tr>
 <td>${sub.id}</td>
 
@@ -99,9 +98,7 @@ ${sub.problem_title}
 ${verdict}
 </td>
 
-<td>${sub.time_taken ? sub.time_taken + " ms" : "-"}</td>
-
-<td>${memoryMB}</td>
+<td>${sub.time_taken ? Math.round(sub.time_taken * 1000) + " ms" : "-"}</td><td>${memoryKB}</td>
 
 <td>${new Date(sub.submitted_at).toLocaleString()}</td>
 
@@ -142,7 +139,7 @@ window.onload = () => {
     // refresh every 2 seconds
     setInterval(() => {
         loadSubmissions(currentPage);
-    }, 2000);
+    }, 5000);
 
 };
 async function viewCode(id){
