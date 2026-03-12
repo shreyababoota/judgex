@@ -1,5 +1,6 @@
-from flask import Blueprint
+from flask import Blueprint, request
 from flask_jwt_extended import jwt_required
+
 from app.utils.state_machine import update_status
 from app.models import User, Submission
 from app.extentions import db
@@ -50,11 +51,6 @@ def rejudge_submission(submission_id):
     return {"message": "Submission requeued for judging"}, 200
 
 
-from flask import Blueprint, request
-from flask_jwt_extended import jwt_required
-from app.models import Submission
-from app.utils.decorators import admin_required
-
 @admin_bp.route("/admin/submissions", methods=["GET"])
 @jwt_required()
 @admin_required
@@ -87,7 +83,7 @@ def admin_list_submissions():
             "verdict": s.verdict,
             "time_taken": int(s.time_taken) if s.time_taken else None,
             "memory_taken": s.memory_taken,
-            "submitted_at": s.submitted_at.isoformat()
+            "submitted_at": s.submitted_at.isoformat(),
         }
         for s in submissions
     ]
@@ -95,8 +91,9 @@ def admin_list_submissions():
     return {
         "submissions": result,
         "page": page,
-        "total_pages": total_pages
+        "total_pages": total_pages,
     }, 200
+
 
 @admin_bp.route("/admin/users", methods=["GET"])
 @jwt_required()
@@ -109,7 +106,7 @@ def list_users():
         {
             "id": u.id,
             "email": u.email,
-            "role": u.role
+            "role": u.role,
         }
         for u in users
     ]
