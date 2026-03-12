@@ -91,13 +91,17 @@ def process_submission(submission):
         db.session.commit()
 
 
-def run_worker(app,stop_event):
+def run_worker(app, stop_event):
 
     print("WORKER STARTED")
 
     with app.app_context():
 
         # reset stuck submissions
+        stuck = Submission.query.filter_by(status="RUNNING").count()
+        if stuck:
+            print(f"Resetting {stuck} stuck submissions")
+
         Submission.query.filter_by(status="RUNNING").update({"status": "IN_QUEUE"})
         db.session.commit()
 
@@ -126,13 +130,17 @@ def run_worker(app,stop_event):
 
                     try:
                         process_submission(submission)
+
+                    except Exception as e:
+                        print("Worker error:", e)
+                        submission.status = "SYSTEM_ERROR"
+                        db.session.commit()
+
                     finally:
                         db.session.remove()
 
                 else:
-
                     time.sleep(0.1)
 
             else:
-
-                time.sleep(1)
+                time.sleep(0.5)
