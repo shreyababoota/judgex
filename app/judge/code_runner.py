@@ -14,7 +14,7 @@ def run_code(command, input_data, time_limit, memory_limit, work_dir):
     start_time = time.perf_counter()
 
     try:
-        wrapped_command = ["time", "-f", "%M"] + command
+        wrapped_command = ["/bin/time", "-f", "%M"] + command
 
         process = subprocess.Popen(
             wrapped_command,
@@ -99,7 +99,7 @@ def compile_cpp(file_path: str):
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
-        timeout=3
+        timeout=10
     )
 
     if result.returncode == 0:
