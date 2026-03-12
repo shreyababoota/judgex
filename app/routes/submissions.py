@@ -1,7 +1,6 @@
 import math
 import os
 import uuid
-import subprocess
 
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -24,7 +23,7 @@ def create_submission():
 
     data = request.get_json()
 
-    allowed_languages = ["python", "cpp", "java"]
+    allowed_languages = ["python", "cpp"]
 
     if not data:
         return {"error": "Invalid input"}, 400
@@ -34,15 +33,6 @@ def create_submission():
     for field in required_fields:
         if field not in data:
             return {"error": f"Missing field: {field}"}, 400
-
-    if not isinstance(data["problem_id"], int):
-        return {"error": "Problem ID must be an integer"}, 400
-
-    if not isinstance(data["code"], str):
-        return {"error": "Code cannot be empty"}, 400
-
-    if not isinstance(data["language"], str):
-        return {"error": "Language must be a string"}, 400
 
     language = data["language"].strip().lower()
     code = data["code"].strip()
@@ -54,9 +44,6 @@ def create_submission():
     if not code:
         return {"error": "Code cannot be empty"}, 400
 
-    if len(code) > 1000:
-        return {"error": "Code length exceeds limit"}, 400
-
     problem = Problem.query.get(problem_id)
 
     if not problem:
@@ -65,13 +52,12 @@ def create_submission():
     user_id = int(get_jwt_identity())
 
     submission = Submission(
-    user_id=user_id,
-    problem_id=problem_id,
-    language=language,
-    code=code,              # ← store code in DB
-    status="IN_QUEUE",
-    verdict=None
-)
+        user_id=user_id,
+        problem_id=problem_id,
+        language=language,
+        status="IN_QUEUE",
+        verdict=None
+    )
 
     db.session.add(submission)
     db.session.commit()
@@ -111,13 +97,11 @@ def get_submission(submission_id):
     if submission.user_id != user_id:
         return {"error": "Forbidden"}, 403
 
-    code = submission.code
+    if not submission.file_path or not os.path.exists(submission.file_path):
+        return {"code": "Code file not available (server restarted)."}
 
-    # recreate file if missing
-    if submission.file_path and not os.path.exists(submission.file_path):
-        os.makedirs(os.path.dirname(submission.file_path), exist_ok=True)
-        with open(submission.file_path, "w") as f:
-            f.write(code)
+    with open(submission.file_path, "r") as f:
+        code = f.read()
 
     return {
         "id": submission.id,
@@ -132,7 +116,7 @@ def get_submission(submission_id):
     }, 200
 
 
-# ---------------- LIST SUBMISSIONS (PAGINATION) ----------------
+# ---------------- LIST SUBMISSIONS ----------------
 
 @submissions_bp.route("/submissions", methods=["GET"])
 @jwt_required()
@@ -140,20 +124,8 @@ def list_submissions():
 
     user_id = int(get_jwt_identity())
 
-    try:
-        page = int(request.args.get("page", 1))
-        limit = int(request.args.get("limit", 10))
-    except ValueError:
-        return {"error": "Page and limit must be integers"}, 400
-
-    if page < 1:
-        return {"error": "Page must be greater than 0"}, 400
-
-    if limit < 1:
-        return {"error": "Limit must be greater than 0"}, 400
-
-    if limit > 50:
-        limit = 50
+    page = int(request.args.get("page", 1))
+    limit = int(request.args.get("limit", 10))
 
     base_query = Submission.query.filter_by(user_id=user_id)
 
@@ -235,9 +207,7 @@ def run_code_route():
                 "stderr": compile_result["stderr"]
             }
 
-        binary_name = compile_result["binary_name"]
-
-        command = ["./" + binary_name]
+        command = ["./" + compile_result["binary_name"]]
 
     else:
         return {"error": "Unsupported language"}, 400
@@ -278,6 +248,9 @@ def get_submission_code(id):
         code = f.read()
 
     return jsonify({"code": code})
+
+
+# ---------------- GET SUBMISSION STATUS ----------------
 
 @submissions_bp.route("/submissions/<int:submission_id>/status", methods=["GET"])
 @jwt_required()
