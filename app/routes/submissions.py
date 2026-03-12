@@ -10,7 +10,7 @@ from app.judge.file_storage import save_submission_file
 from app.judge.code_runner import run_code, compile_cpp
 
 from ..extentions import db
-from ..models import Submission, Problem
+from ..models import Submission, Problem, User
 
 
 submissions_bp = Blueprint("submissions", __name__)
@@ -260,7 +260,9 @@ def get_submission_code(id):
 
     submission = Submission.query.get_or_404(id)
 
-    if submission.user_id != user_id:
+    user = User.query.get(user_id)
+
+    if submission.user_id != user_id and user.role != "ADMIN":
         return {"error": "Forbidden"}, 403
 
     with open(submission.file_path, "r") as f:

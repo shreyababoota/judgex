@@ -22,6 +22,18 @@
 <tbody id="submissions-body"></tbody>
 
 </table>
+<div id="codeModal" class="code-modal">
+<div class="code-modal-content">
+
+<div class="code-header">
+<span>Submission Code</span>
+<button onclick="closeCode()">Close</button>
+</div>
+
+<pre id="codeViewer"></pre>
+
+</div>
+</div>
 
 </div>
 
@@ -46,22 +58,28 @@ async function loadSubmissions(){
     data.submissions.forEach(sub => {
 
         const row = `
-        <tr>
+<tr>
 
-        <td>${sub.id}</td>
-        <td>${sub.user_id}</td>
-        <td>${sub.problem_id}</td>
-        <td>${sub.language}</td>
-        <td>${sub.verdict || sub.status}</td>
+<td>${sub.id}</td>
+<td>${sub.user_id}</td>
+<td>${sub.problem_title || sub.problem_id}</td>
+<td>${sub.language}</td>
+<td>${sub.verdict || sub.status}</td>
 
-        <td>
-        <button onclick="rejudge(${sub.id})">
-        Rejudge
-        </button>
-        </td>
+<td>
+<button onclick="rejudge(${sub.id})">
+Rejudge
+</button>
+</td>
 
-        </tr>
-        `;
+<td>
+<button onclick="viewCode(${sub.id})">
+View
+</button>
+</td>
+
+</tr>
+`;
 
         body.innerHTML += row;
 
@@ -84,6 +102,26 @@ async function rejudge(id){
 
     loadSubmissions();
 
+}
+async function viewCode(id){
+
+const token = localStorage.getItem("token")
+
+const res = await fetch(`/submission/${id}/code`,{
+headers:{
+"Authorization":"Bearer " + token
+}
+})
+
+const data = await res.json()
+
+document.getElementById("codeViewer").textContent = data.code
+document.getElementById("codeModal").style.display = "flex"
+
+}
+
+function closeCode(){
+document.getElementById("codeModal").style.display = "none"
 }
 
 loadSubmissions();
