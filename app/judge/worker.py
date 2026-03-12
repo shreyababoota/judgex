@@ -23,6 +23,8 @@ def process_submission(submission):
             command = ["python3", file_name]
 
         elif submission.language=="cpp":
+            print("FILE PATH:", file_path)
+            print("FILE EXISTS:", os.path.exists(file_path))
             compile_result=compile_cpp(file_path)
             print("COMPILER STDERR:", compile_result["stderr"])
             if not compile_result["success"]:
@@ -39,7 +41,7 @@ def process_submission(submission):
 
         submission.verdict = result["verdict"]
         submission.time_taken = int(result["time_taken"])
-        submission.memory_taken = result["memory_taken"]
+        submission.memory_taken = result["memory_taken"] or 0
         update_status(submission,"DONE")
     
     except Exception as e:

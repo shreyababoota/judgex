@@ -2,6 +2,7 @@ import subprocess
 import os
 import time
 import resource
+import psutil
 
 
 def limit_memory(memory_mb):
@@ -13,26 +14,31 @@ def run_code(command, input_data, time_limit, memory_limit, work_dir):
 
     start_time = time.perf_counter()
 
-    usage_before = resource.getrusage(resource.RUSAGE_CHILDREN)
-
     try:
-        result = subprocess.run(
+        process = subprocess.Popen(
             command,
-            input=input_data,
-            capture_output=True,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
-            timeout=time_limit / 1000,
             cwd=work_dir,
             preexec_fn=lambda: limit_memory(memory_limit),
         )
 
+        ps = psutil.Process(process.pid)
+        max_memory = 0
+
+        stdout_data, stderr_data = process.communicate(
+            input=input_data,
+            timeout=time_limit / 1000
+        )
+
         end_time = time.perf_counter()
 
-        usage_after = resource.getrusage(resource.RUSAGE_CHILDREN)
-
-        memory_used = usage_after.ru_maxrss
-        stdout_data = result.stdout
-        stderr_data = result.stderr
+        try:
+            max_memory = ps.memory_info().rss // 1024  # KB
+        except Exception:
+            max_memory = 0
 
         if len(stdout_data) > 1_000_000:
             return {
@@ -41,19 +47,21 @@ def run_code(command, input_data, time_limit, memory_limit, work_dir):
                 "returncode": None,
                 "killed_by_watchdog": False,
                 "time_taken": (end_time - start_time) * 1000,
-                "memory_taken": memory_used
+                "memory_taken": max_memory
             }
 
         return {
             "stdout": stdout_data,
             "stderr": stderr_data,
-            "returncode": result.returncode,
+            "returncode": process.returncode,
             "killed_by_watchdog": False,
             "time_taken": (end_time - start_time) * 1000,
-            "memory_taken": memory_used
+            "memory_taken": max_memory
         }
 
     except subprocess.TimeoutExpired:
+
+        process.kill()
 
         return {
             "stdout": "",
@@ -73,7 +81,7 @@ def compile_cpp(file_path: str):
     output_binary = file_name.replace(".cpp", ".out")
 
     result = subprocess.run(
-        ["/usr/bin/g++", file_name, "-O2", "-std=c++17", "-o", output_binary],
+        ["g++", file_name, "-O2", "-std=c++17", "-o", output_binary],
         cwd=dir_path,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
