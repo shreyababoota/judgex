@@ -21,6 +21,7 @@ def create_app():
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(days=1)
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
+    # Database config
     db_url = os.getenv("DATABASE_URL")
 
     if db_url:
@@ -33,11 +34,17 @@ def create_app():
 
     # Init extensions
     db.init_app(app)
-    migrate = Migrate(app, db)
+    Migrate(app, db)
     jwt.init_app(app)
 
+    # Import models so SQLAlchemy registers tables
     from . import models
+
     register_routes(app)
+
+    # Create tables automatically (important for new Postgres DB)
+    with app.app_context():
+        db.create_all()
 
     # -------- START WORKER THREAD --------
 
@@ -47,12 +54,10 @@ def create_app():
         from app.judge.worker import run_worker
         run_worker(app, stop_event)
 
-    # Prevent multiple workers when Flask reloads
     if not app.debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
         worker_thread = threading.Thread(target=start_worker, daemon=True)
         worker_thread.start()
 
-    # Clean shutdown
     @atexit.register
     def shutdown_worker():
         stop_event.set()
