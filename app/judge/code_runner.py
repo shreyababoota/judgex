@@ -24,7 +24,6 @@ def run_code(command, input_data, time_limit, memory_limit, work_dir):
             timeout=time_limit / 1000,
             cwd=work_dir,
             preexec_fn=lambda: limit_memory(memory_limit),
-            timeout=2
         )
 
         end_time = time.perf_counter()
