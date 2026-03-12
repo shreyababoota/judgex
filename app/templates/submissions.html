@@ -97,8 +97,7 @@ const row = `
     </td>
     <td>${sub.time_taken ? sub.time_taken + " ms" : "-"}</td>
     <td>${memoryMB}</td>
-<td>${formatTime(sub.submitted_at)}</td>
-</tr>
+<td>${new Date(s.submitted_at).toLocaleString()}</td></tr>
 `;
         body.innerHTML += row;
     });

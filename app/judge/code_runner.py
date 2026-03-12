@@ -23,7 +23,8 @@ def run_code(command, input_data, time_limit, memory_limit, work_dir):
             text=True,
             timeout=time_limit / 1000,
             cwd=work_dir,
-            preexec_fn=lambda: limit_memory(memory_limit)
+            preexec_fn=lambda: limit_memory(memory_limit),
+            timeout=2
         )
 
         end_time = time.perf_counter()
@@ -78,7 +79,8 @@ def compile_cpp(file_path: str):
         cwd=dir_path,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        text=True
+        text=True,
+        timeout=2
     )
 
     if result.returncode == 0:

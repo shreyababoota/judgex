@@ -50,29 +50,53 @@ def rejudge_submission(submission_id):
     return {"message": "Submission requeued for judging"}, 200
 
 
+from flask import Blueprint, request
+from flask_jwt_extended import jwt_required
+from app.models import Submission
+from app.utils.decorators import admin_required
+
 @admin_bp.route("/admin/submissions", methods=["GET"])
 @jwt_required()
 @admin_required
 def admin_list_submissions():
 
-    submissions = Submission.query.order_by(
-        Submission.submitted_at.desc()
-    ).limit(100).all()
+    page = int(request.args.get("page", 1))
+    per_page = 20
+
+    offset = (page - 1) * per_page
+
+    submissions = (
+        Submission.query
+        .order_by(Submission.submitted_at.desc())
+        .offset(offset)
+        .limit(per_page)
+        .all()
+    )
+
+    total = Submission.query.count()
+    total_pages = (total + per_page - 1) // per_page
 
     result = [
         {
             "id": s.id,
             "user_id": s.user_id,
             "problem_id": s.problem_id,
+            "problem_title": s.problem.title if s.problem else None,
             "language": s.language,
             "status": s.status,
             "verdict": s.verdict,
+            "time_taken": int(s.time_taken) if s.time_taken else None,
+            "memory_taken": s.memory_taken,
             "submitted_at": s.submitted_at.isoformat()
         }
         for s in submissions
     ]
 
-    return {"submissions": result}, 200
+    return {
+        "submissions": result,
+        "page": page,
+        "total_pages": total_pages
+    }, 200
 
 @admin_bp.route("/admin/users", methods=["GET"])
 @jwt_required()

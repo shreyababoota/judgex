@@ -38,7 +38,7 @@ def process_submission(submission):
         result=judge_against_testcases(command,submission,test_cases)
 
         submission.verdict = result["verdict"]
-        submission.time_taken = result["time_taken"]
+        submission.time_taken = int(result["time_taken"])
         submission.memory_taken = result["memory_taken"]
         update_status(submission,"DONE")
     
@@ -57,6 +57,7 @@ def process_submission(submission):
 
 def run_worker():
     app=create_app()
+    print("WORKER STARTED")
     with app.app_context():
         Submission.query.filter_by(status="RUNNING").update({"status": "IN_QUEUE"})
         db.session.commit()

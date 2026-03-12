@@ -254,3 +254,22 @@ def run_code_route():
         "stdout": result["stdout"],
         "stderr": result["stderr"]
     }
+
+@submissions_bp.route("/submission/<int:id>/code")
+def get_submission_code(id):
+
+    submission = Submission.query.get_or_404(id)
+
+    with open(submission.file_path, "r") as f:
+        code = f.read()
+
+    return jsonify({"code": code})
+@submissions_bp.route("/submission/<int:id>/code")
+def get_submission_code(id):
+
+    submission = Submission.query.get_or_404(id)
+
+    with open(submission.file_path, "r") as f:
+        code = f.read()
+
+    return jsonify({"code": code})
