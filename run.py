@@ -1,13 +1,14 @@
 from app import create_app
 from app.extentions import db
 from app.judge.worker import run_worker
+from flask_migrate import upgrade
 import threading
 
 app = create_app()
 
-# create tables if they don't exist
+# apply migrations automatically
 with app.app_context():
-    db.create_all()
+    upgrade()
 
 
 def start_worker():
@@ -21,7 +22,6 @@ def start_worker():
 
 
 start_worker()
-
 
 if __name__ == "__main__":
     app.run(debug=True)
