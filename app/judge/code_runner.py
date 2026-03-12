@@ -46,7 +46,7 @@ def run_code(command, input_data, time_limit, memory_limit, work_dir):
                 "stderr": "Output Limit Exceeded",
                 "returncode": None,
                 "killed_by_watchdog": False,
-                "time_taken": (end_time - start_time) * 1000,
+                "time_taken": min(int((end_time - start_time) * 1000), time_limit),
                 "memory_taken": max_memory
             }
 

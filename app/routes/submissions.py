@@ -65,12 +65,13 @@ def create_submission():
     user_id = int(get_jwt_identity())
 
     submission = Submission(
-        user_id=user_id,
-        problem_id=problem_id,
-        language=language,
-        status="IN_QUEUE",
-        verdict=None
-    )
+    user_id=user_id,
+    problem_id=problem_id,
+    language=language,
+    code=code,              # ← store code in DB
+    status="IN_QUEUE",
+    verdict=None
+)
 
     db.session.add(submission)
     db.session.commit()
@@ -110,11 +111,13 @@ def get_submission(submission_id):
     if submission.user_id != user_id:
         return {"error": "Forbidden"}, 403
 
-    if not os.path.exists(submission.file_path):
-        return {"code": "Code file not found (server restart removed stored files)."}
+    code = submission.code
 
-    with open(submission.file_path, "r") as f:
-        code = f.read()
+    # recreate file if missing
+    if submission.file_path and not os.path.exists(submission.file_path):
+        os.makedirs(os.path.dirname(submission.file_path), exist_ok=True)
+        with open(submission.file_path, "w") as f:
+            f.write(code)
 
     return {
         "id": submission.id,
@@ -268,8 +271,12 @@ def get_submission_code(id):
     if submission.user_id != user_id and user.role != "ADMIN":
         return {"error": "Forbidden"}, 403
 
-    with open(submission.file_path, "r") as f:
-        code = f.read()
+    code = submission.code
+
+    if submission.file_path and not os.path.exists(submission.file_path):
+        os.makedirs(os.path.dirname(submission.file_path), exist_ok=True)
+        with open(submission.file_path, "w") as f:
+            f.write(code)
 
     return jsonify({"code": code})
 

@@ -80,9 +80,11 @@ async function loadSubmissions(page = 1) {
             cls = "judging";
         }
 
-const memoryKB = sub.memory_taken
-? sub.memory_taken + " KB"
-: "-";const row = `
+const memoryKB =
+(sub.memory_taken !== null && sub.memory_taken !== undefined)
+    ? sub.memory_taken + " KB"
+    : "-";
+    const row = `
 <tr>
 <td>${sub.id}</td>
 
@@ -100,7 +102,9 @@ ${verdict}
 
 <td>${sub.time_taken ? Math.round(sub.time_taken * 1000) + " ms" : "-"}</td><td>${memoryKB}</td>
 
-<td>${new Date(sub.submitted_at).toLocaleString()}</td>
+<td>${new Date(sub.submitted_at).toLocaleString("en-IN", {
+    timeZone: "Asia/Kolkata"
+})}</td>
 
 <td>
 <button onclick="viewCode(${sub.id})">
