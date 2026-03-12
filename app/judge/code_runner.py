@@ -2,7 +2,6 @@ import subprocess
 import os
 import time
 import resource
-import psutil
 
 
 def limit_memory(memory_mb):
@@ -15,8 +14,10 @@ def run_code(command, input_data, time_limit, memory_limit, work_dir):
     start_time = time.perf_counter()
 
     try:
+        wrapped_command = ["/usr/bin/time", "-f", "%M"] + command
+
         process = subprocess.Popen(
-            command,
+            wrapped_command,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -25,25 +26,35 @@ def run_code(command, input_data, time_limit, memory_limit, work_dir):
             preexec_fn=lambda: limit_memory(memory_limit),
         )
 
-        ps = psutil.Process(process.pid)
+        try:
+            stdout_data, stderr_data = process.communicate(
+                input=input_data,
+                timeout=time_limit / 1000
+            )
+        except subprocess.TimeoutExpired:
+            process.kill()
+            return {
+                "stdout": "",
+                "stderr": "TLE",
+                "returncode": None,
+                "killed_by_watchdog": True,
+                "time_taken": time_limit,
+                "memory_taken": 0
+            }
 
-        stdout_data, stderr_data = process.communicate(
-            input=input_data,
-            timeout=time_limit / 1000
-        )
+        # /usr/bin/time prints memory in last stderr line
+        stderr_lines = stderr_data.strip().split("\n")
+
+        try:
+            memory_kb = int(stderr_lines[-1])
+            stderr_data = "\n".join(stderr_lines[:-1])
+        except Exception:
+            memory_kb = 0
 
         end_time = time.perf_counter()
 
-        # runtime in ms
         runtime = int((end_time - start_time) * 1000)
-
-        # never exceed time limit
         runtime = min(runtime, time_limit)
-
-        try:
-            memory_kb = ps.memory_info().rss // 1024
-        except Exception:
-            memory_kb = 0
 
         if len(stdout_data) > 1_000_000:
             return {
@@ -64,16 +75,13 @@ def run_code(command, input_data, time_limit, memory_limit, work_dir):
             "memory_taken": memory_kb
         }
 
-    except subprocess.TimeoutExpired:
-
-        process.kill()
-
+    except Exception as e:
         return {
             "stdout": "",
-            "stderr": "TLE",
+            "stderr": str(e),
             "returncode": None,
-            "killed_by_watchdog": True,
-            "time_taken": time_limit,
+            "killed_by_watchdog": False,
+            "time_taken": 0,
             "memory_taken": 0
         }
 
@@ -120,7 +128,10 @@ def judge_against_testcases(command, submission, test_cases):
     max_time = 0
     max_memory = 0
 
-    work_dir = os.path.dirname(os.path.abspath(submission.file_path))
+    from app.judge.file_storage import BASE_STORAGE_DIR
+
+    file_path = os.path.join(BASE_STORAGE_DIR, submission.file_name)
+    work_dir = os.path.dirname(os.path.abspath(file_path))
 
     for test_case in test_cases:
 

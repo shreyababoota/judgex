@@ -1,12 +1,15 @@
 import os
 
-# Always create storage relative to project root
-BASE_STORAGE_DIR = os.path.join(os.getcwd(), "submissions_storage")
+# Get project root directory
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
+
+# Storage directory inside project
+BASE_STORAGE_DIR = os.path.join(BASE_DIR, "submissions_storage")
 
 
 def save_submission_file(submission_id: int, code: str, language: str) -> str:
     """
-    Save submission code to filesystem and return the absolute file path.
+    Save submission code to filesystem and return absolute path.
     """
 
     os.makedirs(BASE_STORAGE_DIR, exist_ok=True)

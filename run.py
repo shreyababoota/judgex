@@ -13,7 +13,7 @@ with app.app_context():
 def start_worker():
     def worker():
         print("Judge worker started")
-        run_worker()
+        run_worker(app)
 
     thread = threading.Thread(target=worker)
     thread.daemon = True

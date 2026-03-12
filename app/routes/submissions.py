@@ -1,11 +1,12 @@
 import math
 import os
 import uuid
-
+from zoneinfo import ZoneInfo
+from datetime import timezone
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
-from app.judge.file_storage import save_submission_file
+from app.judge.file_storage import save_submission_file, BASE_STORAGE_DIR
 from app.judge.code_runner import run_code, compile_cpp
 
 from ..extentions import db
@@ -56,6 +57,7 @@ def create_submission():
         problem_id=problem_id,
         language=language,
         status="IN_QUEUE",
+        code=code,
         verdict=None
     )
 
@@ -64,13 +66,13 @@ def create_submission():
 
     try:
 
-        file_path = save_submission_file(
+        file_name = save_submission_file(
             submission.id,
             code,
             language
         )
 
-        submission.file_path = file_path
+        submission.file_name = file_name
         db.session.commit()
 
     except Exception:
@@ -97,10 +99,12 @@ def get_submission(submission_id):
     if submission.user_id != user_id:
         return {"error": "Forbidden"}, 403
 
-    if not submission.file_path or not os.path.exists(submission.file_path):
+    file_path = os.path.join(BASE_STORAGE_DIR, submission.file_name)
+
+    if not submission.file_name or not os.path.exists(file_path):
         return {"code": "Code file not available (server restarted)."}
 
-    with open(submission.file_path, "r") as f:
+    with open(file_path, "r", encoding="utf-8") as f:
         code = f.read()
 
     return {
@@ -112,8 +116,10 @@ def get_submission(submission_id):
         "verdict": submission.verdict,
         "time_taken": submission.time_taken,
         "memory_taken": submission.memory_taken,
-        "submitted_at": submission.submitted_at.isoformat()
-    }, 200
+        "submitted_at": Submission.submitted_at.astimezone(
+            ZoneInfo("Asia/Kolkata")
+        ).isoformat()
+        }, 200
 
 
 # ---------------- LIST SUBMISSIONS ----------------
@@ -140,19 +146,23 @@ def list_submissions():
     )
 
     result = [
-        {
-            "id": s.id,
-            "problem_id": s.problem_id,
-            "language": s.language,
-            "status": s.status,
-            "verdict": s.verdict,
-            "time_taken": s.time_taken,
-            "memory_taken": s.memory_taken,
-            "submitted_at": s.submitted_at.isoformat(),
-            "problem_title": s.problem.title
-        }
-        for s in submissions
-    ]
+    {
+        "id": s.id,
+        "problem_id": s.problem_id,
+        "language": s.language,
+        "status": s.status,
+        "verdict": s.verdict,
+        "time_taken": s.time_taken,
+        "memory_taken": s.memory_taken,
+        "submitted_at": (
+            s.submitted_at.replace(tzinfo=timezone.utc)
+            .astimezone(ZoneInfo("Asia/Kolkata"))
+            .isoformat()
+        ),
+        "problem_title": s.problem.title
+    }
+    for s in submissions
+]
 
     total_pages = math.ceil(total / limit)
 
@@ -187,7 +197,7 @@ def run_code_route():
 
         file_path = os.path.join(run_dir, "main.py")
 
-        with open(file_path, "w") as f:
+        with open(file_path, "w", encoding="utf-8") as f:
             f.write(code)
 
         command = ["python3", "main.py"]
@@ -196,7 +206,7 @@ def run_code_route():
 
         file_path = os.path.join(run_dir, "main.cpp")
 
-        with open(file_path, "w") as f:
+        with open(file_path, "w", encoding="utf-8") as f:
             f.write(code)
 
         compile_result = compile_cpp(file_path)
@@ -241,14 +251,9 @@ def get_submission_code(id):
     if submission.user_id != user_id and user.role != "ADMIN":
         return {"error": "Forbidden"}, 403
 
-    if not submission.file_path or not os.path.exists(submission.file_path):
-        return {"code": "Code file not available (server restarted)."}
-
-    with open(submission.file_path, "r") as f:
-        code = f.read()
-
-    return jsonify({"code": code})
-
+    return jsonify({
+        "code": submission.code
+    })
 
 # ---------------- GET SUBMISSION STATUS ----------------
 

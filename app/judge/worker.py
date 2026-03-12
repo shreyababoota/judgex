@@ -1,11 +1,10 @@
 import time
 import os
-
-from app import create_app
 from app.utils.state_machine import update_status
 from app.extentions import db
 from app.models import Submission, Problem, TestCase
 from app.judge.code_runner import judge_against_testcases, compile_cpp
+from app.judge.file_storage import BASE_STORAGE_DIR
 
 
 def process_submission(submission):
@@ -21,10 +20,13 @@ def process_submission(submission):
             .all()
         )
 
-        file_path = submission.file_path
+        # reconstruct full path from stored file_name
+        file_path = os.path.join(BASE_STORAGE_DIR, submission.file_name)
 
-        if not file_path or not os.path.exists(file_path):
+        if not submission.file_name or not os.path.exists(file_path):
+
             print("FILE MISSING:", file_path)
+
             submission.verdict = "SYSTEM_ERROR"
             update_status(submission, "ERROR")
             db.session.commit()
@@ -44,6 +46,7 @@ def process_submission(submission):
             compile_result = compile_cpp(file_path)
 
             if not compile_result["success"]:
+
                 submission.verdict = "COMPILE_ERROR"
                 update_status(submission, "DONE")
                 db.session.commit()
@@ -88,9 +91,7 @@ def process_submission(submission):
         db.session.commit()
 
 
-def run_worker():
-
-    app = create_app()
+def run_worker(app,stop_event):
 
     print("WORKER STARTED")
 
@@ -100,7 +101,7 @@ def run_worker():
         Submission.query.filter_by(status="RUNNING").update({"status": "IN_QUEUE"})
         db.session.commit()
 
-        while True:
+        while not stop_event.is_set():
 
             candidate = (
                 Submission.query
@@ -123,9 +124,10 @@ def run_worker():
 
                     submission = Submission.query.get(candidate.id)
 
-                    process_submission(submission)
-
-                    db.session.remove()
+                    try:
+                        process_submission(submission)
+                    finally:
+                        db.session.remove()
 
                 else:
 
@@ -134,7 +136,3 @@ def run_worker():
             else:
 
                 time.sleep(1)
-
-
-if __name__ == "__main__":
-    run_worker()
