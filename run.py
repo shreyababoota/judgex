@@ -12,13 +12,13 @@ with app.app_context():
 
 def start_worker():
     def worker():
-        with app.app_context():
-            print("Judge worker started")
-            run_worker()
+        print("Judge worker started")
+        run_worker()
 
     thread = threading.Thread(target=worker)
     thread.daemon = True
     thread.start()
+
 
 start_worker()
 

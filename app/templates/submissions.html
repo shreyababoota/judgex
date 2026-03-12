@@ -15,6 +15,7 @@
 <th>Time</th>
 <th>Memory</th>
 <th>Submitted At</th>
+<th>Code</th>
 </tr>
 </thead>
 
@@ -85,21 +86,34 @@ async function loadSubmissions(page = 1) {
 
 const row = `
 <tr>
-    <td>${sub.id}</td>
-    <td>
+<td>${sub.id}</td>
+
+<td>
 <a href="/problem-page/${sub.problem_id}">
-    ${sub.problem_title}
+${sub.problem_title}
 </a>
-    </td>
-    <td>${sub.language}</td>
-    <td class="${cls}" style="color:${color}; font-weight:600">
-        ${verdict}
-    </td>
-    <td>${sub.time_taken ? sub.time_taken + " ms" : "-"}</td>
-    <td>${memoryMB}</td>
-<td>${new Date(s.submitted_at).toLocaleString()}</td></tr>
-`;
-        body.innerHTML += row;
+</td>
+
+<td>${sub.language}</td>
+
+<td class="${cls}" style="color:${color}; font-weight:600">
+${verdict}
+</td>
+
+<td>${sub.time_taken ? sub.time_taken + " ms" : "-"}</td>
+
+<td>${memoryMB}</td>
+
+<td>${new Date(sub.submitted_at).toLocaleString()}</td>
+
+<td>
+<button onclick="viewCode(${sub.id})">
+View
+</button>
+</td>
+
+</tr>
+`;        body.innerHTML += row;
     });
 
     renderPagination(data.page, data.total_pages);
@@ -132,6 +146,21 @@ window.onload = () => {
     }, 2000);
 
 };
+async function viewCode(id){
+
+const token = localStorage.getItem("token")
+
+const res = await fetch(`/submission/${id}/code`,{
+headers:{
+"Authorization":"Bearer " + token
+}
+})
+
+const data = await res.json()
+
+alert(data.code)
+
+}
 </script>
 
 {% endblock %}

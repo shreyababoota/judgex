@@ -267,3 +267,21 @@ def get_submission_code(id):
         code = f.read()
 
     return jsonify({"code": code})
+
+@submissions_bp.route("/submissions/<int:submission_id>/status", methods=["GET"])
+@jwt_required()
+def get_submission_status(submission_id):
+
+    user_id = int(get_jwt_identity())
+
+    submission = Submission.query.get_or_404(submission_id)
+
+    if submission.user_id != user_id:
+        return {"error": "Forbidden"}, 403
+
+    return {
+        "status": submission.status,
+        "verdict": submission.verdict,
+        "time_taken": submission.time_taken,
+        "memory_taken": submission.memory_taken,
+    }, 200
