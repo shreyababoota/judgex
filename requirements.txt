@@ -6,3 +6,4 @@ SQLAlchemy
 alembic
 gunicorn
 psycopg2-binary
+psutil
