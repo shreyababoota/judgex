@@ -14,7 +14,7 @@ def run_code(command, input_data, time_limit, memory_limit, work_dir):
     start_time = time.perf_counter()
 
     try:
-        wrapped_command = ["/bin/time", "-f", "%M"] + command
+        wrapped_command = ["usr/bin/time", "-f", "%M"] + command
 
         process = subprocess.Popen(
             wrapped_command,
