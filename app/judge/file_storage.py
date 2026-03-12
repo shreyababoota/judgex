@@ -1,9 +1,14 @@
 import os
 
-BASE_STORAGE_DIR = os.path.abspath("submissions_storage")
+# Always create storage relative to project root
+BASE_STORAGE_DIR = os.path.join(os.getcwd(), "submissions_storage")
 
 
 def save_submission_file(submission_id: int, code: str, language: str) -> str:
+    """
+    Save submission code to filesystem and return the absolute file path.
+    """
+
     os.makedirs(BASE_STORAGE_DIR, exist_ok=True)
 
     extension_map = {
@@ -12,6 +17,7 @@ def save_submission_file(submission_id: int, code: str, language: str) -> str:
     }
 
     ext = extension_map.get(language)
+
     if not ext:
         raise ValueError("Unsupported language")
 

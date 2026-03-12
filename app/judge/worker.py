@@ -1,14 +1,19 @@
 import time
+import os
+
 from app import create_app
 from app.utils.state_machine import update_status
 from app.extentions import db
 from app.models import Submission, Problem, TestCase
-from app.judge.code_runner import judge_against_testcases,compile_cpp
-import os
+from app.judge.code_runner import judge_against_testcases, compile_cpp
+
 
 def process_submission(submission):
+
     try:
+
         problem = Problem.query.get(submission.problem_id)
+
         test_cases = (
             TestCase.query
             .filter_by(problem_id=submission.problem_id)
@@ -16,75 +21,120 @@ def process_submission(submission):
             .all()
         )
 
-        file_path=submission.file_path
-        file_name=os.path.basename(file_path)
+        file_path = submission.file_path
 
-        if submission.language=="python":
+        if not file_path or not os.path.exists(file_path):
+            print("FILE MISSING:", file_path)
+            submission.verdict = "SYSTEM_ERROR"
+            update_status(submission, "ERROR")
+            db.session.commit()
+            return
+
+        file_name = os.path.basename(file_path)
+        work_dir = os.path.dirname(os.path.abspath(file_path))
+
+        # ---------------- LANGUAGE HANDLING ----------------
+
+        if submission.language == "python":
+
             command = ["python3", file_name]
 
-        elif submission.language=="cpp":
-            print("FILE PATH:", file_path)
-            print("FILE EXISTS:", os.path.exists(file_path))
-            compile_result=compile_cpp(file_path)
-            print("COMPILER STDERR:", compile_result["stderr"])
+        elif submission.language == "cpp":
+
+            compile_result = compile_cpp(file_path)
+
             if not compile_result["success"]:
-                submission.verdict="COMPILE_ERROR"
-                update_status(submission,"DONE")
+                submission.verdict = "COMPILE_ERROR"
+                update_status(submission, "DONE")
                 db.session.commit()
                 return
-                
+
             binary_name = compile_result["binary_name"]
-            command = ["./" + binary_name]       
-        print(f"Processing submission {submission.id} with command: {command}")
-        
-        result=judge_against_testcases(command,submission,test_cases)
+
+            command = ["./" + binary_name]
+
+        else:
+
+            submission.verdict = "SYSTEM_ERROR"
+            update_status(submission, "ERROR")
+            db.session.commit()
+            return
+
+        print(f"Processing submission {submission.id} with command {command}")
+
+        # ---------------- RUN JUDGE ----------------
+
+        result = judge_against_testcases(command, submission, test_cases)
 
         submission.verdict = result["verdict"]
-        submission.time_taken = int(result["time_taken"])
-        submission.memory_taken = result["memory_taken"] or 0
-        update_status(submission,"DONE")
-    
+        submission.time_taken = int(result["time_taken"] or 0)
+        submission.memory_taken = int(result["memory_taken"] or 0)
+
+        update_status(submission, "DONE")
+
     except Exception as e:
+
         print(f"Error processing submission {submission.id}: {e}")
-        submission.verdict='SYSTEM_ERROR'
+
+        submission.verdict = "SYSTEM_ERROR"
+
         try:
-            update_status(submission,"ERROR")
-        except ValueError:
-            submission.status="ERROR"   
-        
-        
+            update_status(submission, "ERROR")
+        except Exception:
+            submission.status = "ERROR"
+
     finally:
+
         db.session.commit()
 
 
 def run_worker():
-    app=create_app()
+
+    app = create_app()
+
     print("WORKER STARTED")
+
     with app.app_context():
+
+        # reset stuck submissions
         Submission.query.filter_by(status="RUNNING").update({"status": "IN_QUEUE"})
         db.session.commit()
+
         while True:
-            candidate=(
+
+            candidate = (
                 Submission.query
                 .filter_by(status="IN_QUEUE")
                 .order_by(Submission.submitted_at.asc())
                 .first()
             )
+
             if candidate:
-                rows_updated=(
-                    Submission.query.filter_by(id=candidate.id, status="IN_QUEUE")
+
+                rows_updated = (
+                    Submission.query
+                    .filter_by(id=candidate.id, status="IN_QUEUE")
                     .update({"status": "RUNNING"})
                 )
+
                 db.session.commit()
-                if rows_updated==1:
-                    submission=Submission.query.get(candidate.id)
+
+                if rows_updated == 1:
+
+                    submission = Submission.query.get(candidate.id)
+
                     process_submission(submission)
+
                     db.session.remove()
+
                 else:
+
                     time.sleep(0.1)
-                
+
             else:
+
                 time.sleep(1)
+
 
 if __name__ == "__main__":
     run_worker()

@@ -271,12 +271,11 @@ def get_submission_code(id):
     if submission.user_id != user_id and user.role != "ADMIN":
         return {"error": "Forbidden"}, 403
 
-    code = submission.code
+    if not submission.file_path or not os.path.exists(submission.file_path):
+        return {"code": "Code file not available (server restarted)."}
 
-    if submission.file_path and not os.path.exists(submission.file_path):
-        os.makedirs(os.path.dirname(submission.file_path), exist_ok=True)
-        with open(submission.file_path, "w") as f:
-            f.write(code)
+    with open(submission.file_path, "r") as f:
+        code = f.read()
 
     return jsonify({"code": code})
 

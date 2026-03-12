@@ -26,7 +26,6 @@ def run_code(command, input_data, time_limit, memory_limit, work_dir):
         )
 
         ps = psutil.Process(process.pid)
-        max_memory = 0
 
         stdout_data, stderr_data = process.communicate(
             input=input_data,
@@ -35,10 +34,16 @@ def run_code(command, input_data, time_limit, memory_limit, work_dir):
 
         end_time = time.perf_counter()
 
+        # runtime in ms
+        runtime = int((end_time - start_time) * 1000)
+
+        # never exceed time limit
+        runtime = min(runtime, time_limit)
+
         try:
-            max_memory = ps.memory_info().rss // 1024  # KB
+            memory_kb = ps.memory_info().rss // 1024
         except Exception:
-            max_memory = 0
+            memory_kb = 0
 
         if len(stdout_data) > 1_000_000:
             return {
@@ -46,8 +51,8 @@ def run_code(command, input_data, time_limit, memory_limit, work_dir):
                 "stderr": "Output Limit Exceeded",
                 "returncode": None,
                 "killed_by_watchdog": False,
-                "time_taken": min(int((end_time - start_time) * 1000), time_limit),
-                "memory_taken": max_memory
+                "time_taken": runtime,
+                "memory_taken": memory_kb
             }
 
         return {
@@ -55,8 +60,8 @@ def run_code(command, input_data, time_limit, memory_limit, work_dir):
             "stderr": stderr_data,
             "returncode": process.returncode,
             "killed_by_watchdog": False,
-            "time_taken": (end_time - start_time) * 1000,
-            "memory_taken": max_memory
+            "time_taken": runtime,
+            "memory_taken": memory_kb
         }
 
     except subprocess.TimeoutExpired:
@@ -69,7 +74,7 @@ def run_code(command, input_data, time_limit, memory_limit, work_dir):
             "returncode": None,
             "killed_by_watchdog": True,
             "time_taken": time_limit,
-            "memory_taken": None
+            "memory_taken": 0
         }
 
 
@@ -86,7 +91,7 @@ def compile_cpp(file_path: str):
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
-        timeout=2
+        timeout=3
     )
 
     if result.returncode == 0:
@@ -127,11 +132,8 @@ def judge_against_testcases(command, submission, test_cases):
             work_dir
         )
 
-        if result["time_taken"] is not None:
-            max_time = max(max_time, result["time_taken"])
-
-        if result["memory_taken"] is not None:
-            max_memory = max(max_memory, result["memory_taken"])
+        max_time = max(max_time, result["time_taken"] or 0)
+        max_memory = max(max_memory, result["memory_taken"] or 0)
 
         if result["killed_by_watchdog"]:
             return {

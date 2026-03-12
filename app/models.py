@@ -43,4 +43,3 @@ class Submission(db.Model):
     status= db.Column(db.String(50), nullable=True)
     problem = db.relationship("Problem", backref="submissions")
     file_path= db.Column(db.String(255), nullable=True)
-    code = db.Column(db.Text)
