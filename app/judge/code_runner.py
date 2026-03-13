@@ -107,14 +107,20 @@ def compile_cpp(file_path: str):
 
     output_binary = file_name.replace(".cpp", ".out")
 
-    result = subprocess.run(
-        ["g++", file_name, "-O2", "-std=c++17", "-o", output_binary],
-        cwd=dir_path,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        timeout=10
-    )
+    try:
+        result = subprocess.run(
+            ["g++", file_name, "-O2", "-std=c++17", "-o", output_binary],
+            cwd=dir_path,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=30
+        )
+    except subprocess.TimeoutExpired:
+        return {
+            "success": False,
+            "stderr": "Compilation timed out"
+        }
 
     if result.returncode == 0:
         return {
