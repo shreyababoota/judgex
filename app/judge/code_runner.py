@@ -44,15 +44,23 @@ def run_code(command, input_data, time_limit, memory_limit, work_dir):
             }
 
         # Extract memory usage from /usr/bin/time
-        stderr_lines = stderr_data.strip().split("\n")
-
         memory_kb = 0
-        if stderr_lines:
-            last_line = stderr_lines[-1].strip()
+        stderr_lines = stderr_data.splitlines()
 
-            if last_line.startswith("MEM:"):
-                memory_kb = int(last_line.split(":")[1])
-                stderr_data = "\n".join(stderr_lines[:-1])
+        clean_stderr = []
+
+        for line in stderr_lines:
+            line = line.strip()
+
+            if line.startswith("MEM:"):
+                try:
+                    memory_kb = int(line.split(":")[1])
+                except:
+                    memory_kb = 0
+            else:
+                clean_stderr.append(line)
+
+        stderr_data = "\n".join(clean_stderr)
 
         end_time = time.perf_counter()
 
