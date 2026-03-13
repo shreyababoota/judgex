@@ -9,7 +9,7 @@ def run_code(command, input_data, time_limit, memory_limit, work_dir):
     start_time = time.perf_counter()
 
     try:
-        wrapped_command = ["/usr/bin/time", "-f", "%M"] + command
+        wrapped_command = ["/usr/bin/time", "-f", "%MEM:M"] + command
 
         process = subprocess.Popen(
             wrapped_command,
@@ -26,6 +26,10 @@ def run_code(command, input_data, time_limit, memory_limit, work_dir):
                 input=(input_data + "\n") if not input_data.endswith("\n") else input_data,
                 timeout=time_limit / 1000
             )
+            print("COMMAND:", wrapped_command)
+            print("STDOUT:", repr(stdout_data))
+            print("STDERR:", repr(stderr_data))
+            print("RETURNCODE:", process.returncode)
 
         except subprocess.TimeoutExpired:
             os.killpg(os.getpgid(process.pid), signal.SIGKILL)
@@ -46,8 +50,8 @@ def run_code(command, input_data, time_limit, memory_limit, work_dir):
         if stderr_lines:
             last_line = stderr_lines[-1].strip()
 
-            if last_line.isdigit():
-                memory_kb = int(last_line)
+            if last_line.startswith("MEM:"):
+                memory_kb = int(last_line.split(":")[1])
                 stderr_data = "\n".join(stderr_lines[:-1])
 
         end_time = time.perf_counter()
