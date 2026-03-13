@@ -45,11 +45,13 @@ def run_code(command, input_data, time_limit, memory_limit, work_dir):
         # /usr/bin/time prints memory in last stderr line
         stderr_lines = stderr_data.strip().split("\n")
 
-        try:
-            memory_kb = int(stderr_lines[-1])
-            stderr_data = "\n".join(stderr_lines[:-1])
-        except Exception:
-            memory_kb = 0
+        memory_kb = 0
+        if stderr_lines:
+            last_line = stderr_lines[-1].strip()
+
+            if last_line.isdigit():
+                memory_kb = int(last_line)
+                stderr_data = "\n".join(stderr_lines[:-1])
 
         end_time = time.perf_counter()
 
