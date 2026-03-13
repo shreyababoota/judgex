@@ -1,12 +1,7 @@
 import subprocess
 import os
 import time
-import resource
-
-
-def limit_memory(memory_mb):
-    memory_bytes = memory_mb * 1024 * 1024
-    resource.setrlimit(resource.RLIMIT_AS, (memory_bytes, memory_bytes))
+import signal
 
 
 def run_code(command, input_data, time_limit, memory_limit, work_dir):
@@ -23,16 +18,18 @@ def run_code(command, input_data, time_limit, memory_limit, work_dir):
             stderr=subprocess.PIPE,
             text=True,
             cwd=work_dir,
-            preexec_fn=lambda: limit_memory(memory_limit),
+            preexec_fn=os.setsid  # start new process group
         )
 
         try:
             stdout_data, stderr_data = process.communicate(
-                input=input_data,
+                input=(input_data + "\n") if not input_data.endswith("\n") else input_data,
                 timeout=time_limit / 1000
             )
+
         except subprocess.TimeoutExpired:
-            process.kill()
+            os.killpg(os.getpgid(process.pid), signal.SIGKILL)
+
             return {
                 "stdout": "",
                 "stderr": "TLE",
@@ -42,7 +39,7 @@ def run_code(command, input_data, time_limit, memory_limit, work_dir):
                 "memory_taken": 0
             }
 
-        # /usr/bin/time prints memory in last stderr line
+        # Extract memory usage from /usr/bin/time
         stderr_lines = stderr_data.strip().split("\n")
 
         memory_kb = 0
@@ -62,6 +59,17 @@ def run_code(command, input_data, time_limit, memory_limit, work_dir):
             return {
                 "stdout": "",
                 "stderr": "Output Limit Exceeded",
+                "returncode": None,
+                "killed_by_watchdog": False,
+                "time_taken": runtime,
+                "memory_taken": memory_kb
+            }
+
+        # Memory limit check
+        if memory_limit and memory_kb > memory_limit * 1024:
+            return {
+                "stdout": "",
+                "stderr": "MLE",
                 "returncode": None,
                 "killed_by_watchdog": False,
                 "time_taken": runtime,
@@ -155,9 +163,16 @@ def judge_against_testcases(command, submission, test_cases):
                 "memory_taken": max_memory
             }
 
-        if result["returncode"] != 0:
+        if result["returncode"] not in (0, None):
             return {
                 "verdict": "RUNTIME_ERROR",
+                "time_taken": max_time,
+                "memory_taken": max_memory
+            }
+
+        if result["stderr"] == "MLE":
+            return {
+                "verdict": "MLE",
                 "time_taken": max_time,
                 "memory_taken": max_memory
             }
