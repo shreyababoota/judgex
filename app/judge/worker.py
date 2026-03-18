@@ -23,9 +23,15 @@ def process_submission(submission):
         # reconstruct full path from stored file_name
         file_path = os.path.join(BASE_STORAGE_DIR, submission.file_name)
 
-        if not submission.file_name or not os.path.exists(file_path):
+        # ensure directory exists
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
-            print("FILE MISSING:", file_path)
+        # ALWAYS recreate file from DB
+        if submission.code:
+            with open(file_path, "w") as f:
+                f.write(submission.code)
+        else:
+            print("CODE MISSING FOR SUBMISSION:", submission.id)
 
             submission.verdict = "SYSTEM_ERROR"
             update_status(submission, "ERROR")
