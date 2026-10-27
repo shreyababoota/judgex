@@ -27,11 +27,12 @@ def create_app():
     if db_url:
         if db_url.startswith("postgres://"):
             db_url = db_url.replace("postgres://", "postgresql+psycopg2://", 1)
+        elif db_url.startswith("postgresql://"):
+            db_url = db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
 
         app.config["SQLALCHEMY_DATABASE_URI"] = db_url
     else:
         app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(app.instance_path, "local.db")
-
     # Init extensions
     db.init_app(app)
     Migrate(app, db)
